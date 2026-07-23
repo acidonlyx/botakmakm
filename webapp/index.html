@@ -28,7 +28,7 @@
             margin: 0 auto;
         }
 
-        /* Дизайн красивой цветной карты */
+        /* Дизайн премиальной карты (теперь здесь кэшбэк и рефералы) */
         .bank-card {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: #ffffff;
@@ -41,7 +41,6 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Декоративные элементы на фоне карты */
         .bank-card::before {
             content: "";
             position: absolute;
@@ -54,7 +53,7 @@
             z-index: 1;
         }
 
-        .card-header, .card-body, .card-footer {
+        .card-header, .card-body, .card-stats {
             position: relative;
             z-index: 2;
         }
@@ -63,13 +62,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .card-brand {
             font-size: 16px;
             font-weight: 700;
-            letter-spacing: 0.5px;
             text-transform: uppercase;
             color: #38bdf8;
         }
@@ -79,17 +77,16 @@
             height: 30px;
             background: linear-gradient(135deg, #fef08a 0%, #ca8a04 100%);
             border-radius: 6px;
-            position: relative;
         }
 
         .card-phone {
-            font-size: 15px;
+            font-size: 14px;
             color: #94a3b8;
             margin-bottom: 4px;
         }
 
         .card-holder {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             margin-bottom: 16px;
         }
@@ -120,7 +117,7 @@
             margin-top: 2px;
         }
 
-        /* Обычные карточки подписок */
+        /* Общие блоки */
         .card {
             background: var(--card-bg);
             border-radius: 16px;
@@ -133,13 +130,10 @@
             font-size: 17px;
             font-weight: 700;
             margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .subtitle {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--hint-color);
             margin-bottom: 16px;
         }
@@ -147,7 +141,7 @@
         .stat-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             font-size: 15px;
         }
 
@@ -155,20 +149,53 @@
             font-weight: 600;
         }
 
-        .progress-bar-container {
-            background-color: rgba(0,0,0,0.08);
-            border-radius: 8px;
-            height: 10px;
-            overflow: hidden;
-            margin-top: 12px;
-            margin-bottom: 8px;
+        /* Отдельный блок скидки снизу */
+        .discount-banner {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            border-radius: 14px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
         }
 
-        .progress-bar {
-            background-color: var(--button-color);
-            height: 100%;
-            width: 0%;
-            transition: width 0.5s ease;
+        .discount-banner .d-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
+        }
+
+        .discount-banner .d-value {
+            font-size: 28px;
+            font-weight: 800;
+            margin-top: 4px;
+        }
+
+        /* Поля ввода автомобиля */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--hint-color);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(0,0,0,0.15);
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-size: 15px;
+            box-sizing: border-box;
         }
 
         .btn {
@@ -183,8 +210,6 @@
             cursor: pointer;
             text-align: center;
             display: block;
-            text-decoration: none;
-            box-sizing: border-box;
             margin-top: 12px;
         }
 
@@ -199,7 +224,7 @@
 <body>
 
     <div class="container">
-        <!-- Красивая банковская карта лояльности -->
+        <!-- Красивая карта лояльности (Кэшбэк и Рефералы) -->
         <div class="bank-card">
             <div class="card-header">
                 <div class="card-brand">🚗 АКМ Авто</div>
@@ -215,50 +240,69 @@
                     <span class="stat-val" id="turnover">0 ₽</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Уровень</span>
-                    <span class="stat-val" id="level-name">Начальный</span>
+                    <span class="stat-label">Кэшбэк</span>
+                    <span class="stat-val" id="cashback-rate" style="color: #4ade80;">1%</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Скидка</span>
-                    <span class="stat-val" id="discount" style="color: #4ade80;">0%</span>
+                    <span class="stat-label">Рефералы</span>
+                    <span class="stat-val" id="ref-count">0 чел.</span>
                 </div>
             </div>
         </div>
 
-        <!-- Карточка прогресса и шкалы -->
+        <!-- Скидка вынесена отдельно вниз -->
+        <div class="discount-banner">
+            <div class="d-title">Ваша текущая персональная скидка</div>
+            <div class="d-value" id="discount">0%</div>
+        </div>
+
+        <!-- Блок данных автомобиля -->
         <div class="card">
-            <div class="title">📈 Прогресс накопления</div>
-            <div class="subtitle" id="next-target">Осталось накопить до следующего уровня: 100 000 ₽</div>
-
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progress"></div>
+            <div class="title">🚙 Данные вашего автомобиля</div>
+            <div class="subtitle">Укажите данные, чтобы мы автоматически подставляли их при записи и оценке ремонта</div>
+            
+            <div class="form-group">
+                <label>Марка</label>
+                <input type="text" id="car-brand" class="form-input" placeholder="Например: Toyota">
             </div>
+            <div class="form-group">
+                <label>Модель</label>
+                <input type="text" id="car-model" class="form-input" placeholder="Например: Camry">
+            </div>
+            <div class="form-group">
+                <label>VIN-номер</label>
+                <input type="text" id="car-vin" class="form-input" placeholder="17 символов VIN">
+            </div>
+            <div class="form-group">
+                <label>Гос. номер</label>
+                <input type="text" id="car-plate" class="form-input" placeholder="А000АА799">
+            </div>
+            <button class="btn" onclick="saveCarData()">💾 Сохранить данные авто</button>
+        </div>
 
+        <!-- Прогресс и шкала кэшбэка -->
+        <div class="card">
+            <div class="title">📈 Шкала кэшбэка от оборота</div>
+            <div class="subtitle" id="next-target">Осталось до следующего уровня: 100 000 ₽</div>
+            
             <div class="levels-list">
-                <b>Шкала скидок:</b><br>
-                • 100 тыс. ₽ — 5%<br>
-                • 250 тыс. ₽ — 10%<br>
-                • 600 тыс. ₽ — 15%<br>
-                • 1 млн ₽ — 20% (Максимум)
+                • 0 – 100 тыс. ₽ — <b>1%</b><br>
+                • 100 – 200 тыс. ₽ — <b>2%</b><br>
+                • 200 – 300 тыс. ₽ — <b>3%</b><br>
+                • 300 – 400 тыс. ₽ — <b>4%</b><br>
+                • 500 – 1000 тыс. ₽ — <b>5%</b><br>
+                • от 1 млн ₽ — <b>7%</b>
             </div>
         </div>
 
         <!-- Реферальная программа -->
         <div class="card">
             <div class="title">🎁 Реферальный кэшбэк</div>
-            <div class="subtitle">Приглашайте друзей и получайте кэшбэк с их ремонтов</div>
-
-            <div class="stat-row">
-                <span>Приглашено друзей:</span>
-                <span class="stat-value" id="ref-count">0 чел.</span>
-            </div>
+            <div class="subtitle">Друг получает 750 ₽ на первый визит, а вы — 10% от его чека (до 5000 бонусов)!</div>
+            
             <div class="stat-row">
                 <span>Бонусный баланс:</span>
                 <span class="stat-value" id="bonus-balance" style="color: #2563eb;">0 ₽</span>
-            </div>
-            <div class="stat-row">
-                <span>Ваш кэшбэк:</span>
-                <span class="stat-value" id="ref-rate">1%</span>
             </div>
 
             <button class="btn" onclick="shareRefLink()">📤 Поделиться ссылкой</button>
@@ -275,27 +319,50 @@
             throw new Error('No user ID');
         }
 
+        // Загрузка данных
         fetch(`https://botakmakm.onrender.com/api/user_data?user_id=${userId}`)
             .then(res => res.json())
             .then(data => {
                 document.getElementById('user-phone').innerText = `Тел: ${data.phone}`;
                 document.getElementById('turnover').innerText = `${data.turnover.toLocaleString()} ₽`;
-                document.getElementById('level-name').innerText = data.level_name;
                 document.getElementById('discount').innerText = `${data.discount}%`;
-                
+                document.getElementById('cashback-rate').innerText = `${data.cashback_rate}%`;
                 document.getElementById('ref-count').innerText = `${data.ref_count} чел.`;
                 document.getElementById('bonus-balance').innerText = `${data.bonus_balance.toLocaleString()} ₽`;
-                document.getElementById('ref-rate').innerText = `${data.ref_rate}%`;
-
-                let percent = (data.turnover / data.max_target) * 100;
-                if (percent > 100) percent = 100;
-                document.getElementById('progress').style.width = percent + '%';
                 document.getElementById('next-target').innerText = data.next_text;
-            })
-            .catch(err => {
-                console.error('Ошибка:', err);
-                document.getElementById('user-phone').innerText = 'Ошибка загрузки';
+
+                // Заполняем поля авто, если они уже были сохранены
+                if (data.car) {
+                    document.getElementById('car-brand').value = data.car.brand || '';
+                    document.getElementById('car-model').value = data.car.model || '';
+                    document.getElementById('car-vin').value = data.car.vin || '';
+                    document.getElementById('car-plate').value = data.car.plate || '';
+                }
             });
+
+        // Сохранение данных автомобиля
+        function saveCarData() {
+            const carData = {
+                brand: document.getElementById('car-brand').value,
+                model: document.getElementById('car-model').value,
+                vin: document.getElementById('car-vin').value,
+                plate: document.getElementById('car-plate').value
+            };
+
+            fetch(`https://botakmakm.onrender.com/api/save_car?user_id=${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(carData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    alert('✅ Данные автомобиля успешно сохранены!');
+                } else {
+                    alert('❌ Ошибка сохранения');
+                }
+            });
+        }
 
         function shareRefLink() {
             const botUsername = "akmautospb_bot";

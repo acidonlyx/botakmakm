@@ -158,11 +158,15 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // Растягиваем на весь экран
+      const tg = window.Telegram.WebApp;
+tg.expand();
 
-        // Получаем Telegram ID текущего пользователя
-        const userId = tg.initDataUnsafe?.user?.id || 8633592767; // Заглушка для теста в браузере
+// Получаем реальный ID пользователя, а если его нет — выводим ошибку вместо чужого аккаунта
+const userId = tg.initDataUnsafe?.user?.id;
+if (!userId) {
+    document.getElementById('user-phone').innerText = 'Ошибка: откройте через бота';
+    throw new Error('No user ID');
+}
 
         // Загружаем данные с бэкенда по вашей публичной ссылке Render
         fetch(`https://botakmakm.onrender.com/api/user_data?user_id=${userId}`)

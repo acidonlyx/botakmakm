@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 
-TOKEN = "7949432655:AAHx-1u7W07rK9bI09V7NlG0WlW_UvE529I"
+TOKEN = "8924615859:AAFBt-yx9fFQmPM7JZ8k6Dp4jPrCQmlThXo"
 WEBAPP_URL = "https://botakmakm.onrender.com/index.html"
 ADMIN_IDS = [8633592767]
 

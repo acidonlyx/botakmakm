@@ -414,19 +414,26 @@ async def main():
     dp = Dispatcher()
     dp.include_router(router)
     
-    # Настраиваем веб-сервер aiohttp для раздачи Mini App
+    # 1. Настраиваем веб-сервер aiohttp
     app = web.Application()
     app.router.add_get('/api/user_data', handle_api_user_data)
-    app.router.add_static('/', path='./webapp', name='webapp') # Раздает файлы из папки webapp
+    app.router.add_static('/', path='./webapp', name='webapp')
     
     runner = web.AppRunner(app)
     await runner.setup()
     
-    # ВОТ СЮДА ВСТАВЛЯЕМ НОВЫЕ СТРОКИ:
     port = int(os.environ.get("PORT", 8080))
     site = web.TCPSite(runner, '0.0.0.0', port)
     
+    # 2. Запускаем веб-сервер
     await site.start()
+    print(f"Веб-сервер запущен на порту {port}")
     
-    print(f"Бот и Mini App сервер успешно запущены на порту {port}...")
-    await dp.start_polling(bot)
+    # 3. Запускаем бота параллельно через asyncio.gather
+    await asyncio.gather(
+        dp.start_polling(bot),
+        keep_alive_server() # если нужна заглушка, либо просто оставляем polling
+    )
+
+# Если у вас нет функции keep_alive_server, можно запустить проще:
+# await dp.start_polling(bot) после await site.start()

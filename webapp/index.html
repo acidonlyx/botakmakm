@@ -164,8 +164,8 @@
         // Получаем Telegram ID текущего пользователя
         const userId = tg.initDataUnsafe?.user?.id || 8633592767; // Заглушка для теста в браузере
 
-        // Загружаем данные с бэкенда
-        fetch(`/api/user_data?user_id=${userId}`)
+        // Загружаем данные с бэкенда по вашей публичной ссылке Render
+        fetch(`https://botakmakm.onrender.com/api/user_data?user_id=${userId}`)
             .then(res => res.json())
             .then(data => {
                 document.getElementById('user-phone').innerText = `Телефон: ${data.phone}`;
@@ -189,7 +189,7 @@
             });
 
         function shareRefLink() {
-            const botUsername = "AKM_Auto_bot"; // Укажите юзернейм вашего бота
+            const botUsername = "akmautospb_bot"; // Укажите юзернейм вашего бота
             const refLink = `https://t.me/${botUsername}?start=${userId}`;
             const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent('Заезжай в АКМ Авто! Отличный сервис, накопительные скидки и кэшбэк.')}`;
             tg.openTelegramLink(shareUrl);

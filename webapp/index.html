@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>АКМ Авто — Карта лояльности</title>
-    <!-- Подключаем официальный скрипт Telegram Mini App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -29,6 +28,99 @@
             margin: 0 auto;
         }
 
+        /* Дизайн красивой цветной карты */
+        .bank-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.3);
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Декоративные элементы на фоне карты */
+        .bank-card::before {
+            content: "";
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 150px;
+            height: 150px;
+            background: rgba(37, 99, 235, 0.2);
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .card-header, .card-body, .card-footer {
+            position: relative;
+            z-index: 2;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .card-brand {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #38bdf8;
+        }
+
+        .card-chip {
+            width: 40px;
+            height: 30px;
+            background: linear-gradient(135deg, #fef08a 0%, #ca8a04 100%);
+            border-radius: 6px;
+            position: relative;
+        }
+
+        .card-phone {
+            font-size: 15px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .card-holder {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .card-stats {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.07);
+            padding: 12px 16px;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+
+        .stat-item span {
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .stat-val {
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 2px;
+        }
+
+        /* Обычные карточки подписок */
         .card {
             background: var(--card-bg);
             border-radius: 16px;
@@ -38,7 +130,7 @@
         }
 
         .title {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
             margin-bottom: 4px;
             display: flex;
@@ -107,31 +199,47 @@
 <body>
 
     <div class="container">
-        <!-- Карточка лояльности -->
-        <div class="card">
-            <div class="title">💳 Виртуальная карта АКМ Авто</div>
-            <div class="subtitle" id="user-phone">Загрузка данных...</div>
+        <!-- Красивая банковская карта лояльности -->
+        <div class="bank-card">
+            <div class="card-header">
+                <div class="card-brand">🚗 АКМ Авто</div>
+                <div class="card-chip"></div>
+            </div>
+            <div class="card-body">
+                <div class="card-phone" id="user-phone">Загрузка...</div>
+                <div class="card-holder">Виртуальная карта клиента</div>
+            </div>
+            <div class="card-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Оборот</span>
+                    <span class="stat-val" id="turnover">0 ₽</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Уровень</span>
+                    <span class="stat-val" id="level-name">Начальный</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Скидка</span>
+                    <span class="stat-val" id="discount" style="color: #4ade80;">0%</span>
+                </div>
+            </div>
+        </div>
 
-            <div class="stat-row">
-                <span>Годовой оборот:</span>
-                <span class="stat-value" id="turnover">0 ₽</span>
-            </div>
-            <div class="stat-row">
-                <span>Уровень скидки:</span>
-                <span class="stat-value" id="level-name">Начальный</span>
-            </div>
-            <div class="stat-row">
-                <span>Ваша скидка:</span>
-                <span class="stat-value" id="discount" style="color: #16a34a;">0%</span>
-            </div>
+        <!-- Карточка прогресса и шкалы -->
+        <div class="card">
+            <div class="title">📈 Прогресс накопления</div>
+            <div class="subtitle" id="next-target">Осталось накопить до следующего уровня: 100 000 ₽</div>
 
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progress"></div>
             </div>
-            <div class="subtitle" id="next-target" style="font-size: 12px; text-align: right;">Осталось накопить: 75 000 ₽</div>
 
             <div class="levels-list">
-                <b>Шкала скидок:</b> 1 ур. (75к ₽) — 5% | 2 ур. (150к ₽) — 10% | 3 ур. (350к ₽) — 15% | 4 ур. (500к ₽) — 20%
+                <b>Шкала скидок:</b><br>
+                • 100 тыс. ₽ — 5%<br>
+                • 250 тыс. ₽ — 10%<br>
+                • 600 тыс. ₽ — 15%<br>
+                • 1 млн ₽ — 20% (Максимум)
             </div>
         </div>
 
@@ -149,7 +257,7 @@
                 <span class="stat-value" id="bonus-balance" style="color: #2563eb;">0 ₽</span>
             </div>
             <div class="stat-row">
-                <span>Ваш кэшбэк с друзей:</span>
+                <span>Ваш кэшбэк:</span>
                 <span class="stat-value" id="ref-rate">1%</span>
             </div>
 
@@ -158,21 +266,19 @@
     </div>
 
     <script>
-      const tg = window.Telegram.WebApp;
-tg.expand();
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
-// Получаем реальный ID пользователя, а если его нет — выводим ошибку вместо чужого аккаунта
-const userId = tg.initDataUnsafe?.user?.id;
-if (!userId) {
-    document.getElementById('user-phone').innerText = 'Ошибка: откройте через бота';
-    throw new Error('No user ID');
-}
+        const userId = tg.initDataUnsafe?.user?.id;
+        if (!userId) {
+            document.getElementById('user-phone').innerText = 'Ошибка: откройте через бота';
+            throw new Error('No user ID');
+        }
 
-        // Загружаем данные с бэкенда по вашей публичной ссылке Render
         fetch(`https://botakmakm.onrender.com/api/user_data?user_id=${userId}`)
             .then(res => res.json())
             .then(data => {
-                document.getElementById('user-phone').innerText = `Телефон: ${data.phone}`;
+                document.getElementById('user-phone').innerText = `Тел: ${data.phone}`;
                 document.getElementById('turnover').innerText = `${data.turnover.toLocaleString()} ₽`;
                 document.getElementById('level-name').innerText = data.level_name;
                 document.getElementById('discount').innerText = `${data.discount}%`;
@@ -181,19 +287,18 @@ if (!userId) {
                 document.getElementById('bonus-balance').innerText = `${data.bonus_balance.toLocaleString()} ₽`;
                 document.getElementById('ref-rate').innerText = `${data.ref_rate}%`;
 
-                // Прогресс бар
                 let percent = (data.turnover / data.max_target) * 100;
                 if (percent > 100) percent = 100;
                 document.getElementById('progress').style.width = percent + '%';
                 document.getElementById('next-target').innerText = data.next_text;
             })
             .catch(err => {
-                console.error('Ошибка загрузки данных:', err);
-                document.getElementById('user-phone').innerText = 'Ошибка загрузки профиля';
+                console.error('Ошибка:', err);
+                document.getElementById('user-phone').innerText = 'Ошибка загрузки';
             });
 
         function shareRefLink() {
-            const botUsername = "akmautospb_bot"; // Укажите юзернейм вашего бота
+            const botUsername = "akmautospb_bot";
             const refLink = `https://t.me/${botUsername}?start=${userId}`;
             const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent('Заезжай в АКМ Авто! Отличный сервис, накопительные скидки и кэшбэк.')}`;
             tg.openTelegramLink(shareUrl);

@@ -409,6 +409,8 @@ async def handle_api_user_data(request):
         "ref_rate": ref_rate
     })
 
+import asyncio
+
 async def main():
     bot = Bot(token=TOKEN)
     dp = Dispatcher()
@@ -425,15 +427,14 @@ async def main():
     port = int(os.environ.get("PORT", 8080))
     site = web.TCPSite(runner, '0.0.0.0', port)
     
-    # 2. Запускаем веб-сервер
+    # 2. Сначала запускаем веб-сервер (обязательно для Render)
     await site.start()
     print(f"Веб-сервер запущен на порту {port}")
     
-    # 3. Запускаем бота параллельно через asyncio.gather
+    # 3. Параллельно запускаем опросы бота и держим сервер живым
     await asyncio.gather(
-        dp.start_polling(bot),
-        keep_alive_server() # если нужна заглушка, либо просто оставляем polling
+        dp.start_polling(bot)
     )
 
-# Если у вас нет функции keep_alive_server, можно запустить проще:
-# await dp.start_polling(bot) после await site.start()
+if __name__ == "__main__":
+    asyncio.run(main())

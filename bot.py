@@ -85,7 +85,7 @@ album_data = {}
 # В главной клавиатуре кнопка открывает Mini App
 # ВНИМАНИЕ: Вместо 'https://yourdomain.com/webapp/index.html' вам нужно указать адрес, 
 # где будет доступен ваш сайт (например, через ngrok для тестов, либо реальный хостинг).
-WEBAPP_URL = "https://yourdomain.com/index.html" 
+WEBAPP_URL = "https://botakmakm.onrender.com/index.html"
 
 main_menu = ReplyKeyboardMarkup(
     keyboard=[

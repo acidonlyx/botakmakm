@@ -16,9 +16,7 @@ TOKEN = "8924615859:AAE0LqHClZasq1Zii768_N9DWFlVvgynmyI"
 ADMIN_IDS = [8633592767]
 MANAGER_CHAT_ID = 8633592767  # Чат/админ, куда летят заявки на ремонт и фото
 
-# Укажите реальный URL вашего развернутого Mini App (или тестовый домен)
-
-WEB_APP_URL = "https://botakmakm.onrender.com/index.html"" 
+WEB_APP_URL = "https://botakmakm.onrender.com/index.html"
 
 DB_FILE = "cards_db.json"
 

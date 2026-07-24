@@ -104,13 +104,14 @@ async def cmd_start(message: Message):
         save_db(db)
 
     user_data = db.get(user_id, {})
-    # Ошибка со скобками в строке ниже исправлена (везде круглые скобки)
     if not user_data.get("phone") or user_data.get("phone") == "Не указан":
         keyboard = ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)]],
+            keyboard=[
+                [KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)]
+            ],
             resize_keyboard=True,
             one_time_keyboard=True
-        ]
+        )
         await message.answer(
             "👋 Добро пожаловать в **АКМ Авто**!\n\n"
             "Для активации вашей персональной карты лояльности и начисления приветственных **750 бонусов**, пожалуйста, поделитесь вашим номером телефона с помощью кнопки ниже 👇",

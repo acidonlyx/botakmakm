@@ -66,7 +66,7 @@
             <div id="search-results" style="max-height: 200px; overflow-y: auto;"></div>
         </div>
 
-        <!-- Выбранный клиент (скрыто пока не выбран) -->
+        <!-- Выбранный клиент -->
         <div class="card" id="selected-client-card" style="display: none; border: 2px solid #2563eb;">
             <div class="title" id="cl-name">Клиент АКМ Авто</div>
             <div class="subtitle" id="cl-info">Телефон: - | Баланс: 0 ₽</div>
@@ -90,6 +90,15 @@
                 <label id="action-label">Сумма (₽)</label>
                 <input type="number" id="action-amount" class="form-input" placeholder="0">
             </div>
+
+            <!-- Чекбокс первого визита -->
+            <div class="form-group" id="first-visit-group" style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="is-first-visit" style="width: 20px; height: 20px; cursor: pointer;">
+                <label for="is-first-visit" style="margin-bottom: 0; cursor: pointer; text-transform: none; font-size: 14px;">
+                    🎉 Первый визит (начислить бонус рефереру)
+                </label>
+            </div>
+
             <button class="btn" id="action-btn" onclick="executeAction()">Подтвердить</button>
             <button class="btn" style="background: transparent; color: var(--hint-color); margin-top: 6px;" onclick="cancelAction()">Отмена</button>
         </div>
@@ -155,16 +164,21 @@
             const card = document.getElementById('action-form-card');
             card.style.display = 'block';
             
+            const firstVisitGroup = document.getElementById('first-visit-group');
+
             if (type === 'add') {
                 document.getElementById('action-title').innerText = '➕ Внести сумму чека клиента';
                 document.getElementById('action-label').innerText = 'Сумма чека (₽)';
                 document.getElementById('action-btn').className = 'btn';
+                firstVisitGroup.style.display = 'flex';
             } else {
                 document.getElementById('action-title').innerText = '➖ Списать бонусы';
                 document.getElementById('action-label').innerText = 'Сумма списания (₽)';
                 document.getElementById('action-btn').className = 'btn btn-danger';
+                firstVisitGroup.style.display = 'none';
             }
             document.getElementById('action-amount').value = '';
+            document.getElementById('is-first-visit').checked = false;
         }
 
         function cancelAction() {
@@ -179,6 +193,7 @@
             }
 
             const endpoint = currentActionType === 'add' ? '/api/admin/add_transaction' : '/api/admin/burn_bonuses';
+            const isFirstVisit = document.getElementById('is-first-visit').checked;
 
             fetch(`https://botakmakm.onrender.com${endpoint}`, {
                 method: 'POST',
@@ -186,7 +201,8 @@
                 body: JSON.stringify({
                     admin_id: adminId,
                     user_id: activeClient.user_id,
-                    amount: amount
+                    amount: amount,
+                    is_first_visit: isFirstVisit
                 })
             })
             .then(res => res.json())

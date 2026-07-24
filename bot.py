@@ -71,7 +71,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 router = Router()
 
-# Главное меню бота через билдер (без ошибок со скобками)
+# Главное меню через билдер
 def get_main_keyboard():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="💳 Карта лояльности и Авто", web_app=WebAppInfo(url=WEBAPP_URL)))
@@ -104,7 +104,8 @@ async def cmd_start(message: Message):
         save_db(db)
 
     user_data = db.get(user_id, {})
-    if not user_data.get("phone") or user_data.get("phone"] == "Не указан":
+    # Ошибка со скобками в строке ниже исправлена (везде круглые скобки)
+    if not user_data.get("phone") or user_data.get("phone") == "Не указан":
         keyboard = ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)]],
             resize_keyboard=True,

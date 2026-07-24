@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>АКМ Авто — Карта лояльности</title>
+    <title>АКМ Авто — Карта лояльности и Запись</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -176,7 +176,7 @@
             font-weight: 600;
         }
 
-        .form-input {
+        .form-input, .form-control {
             width: 100%;
             padding: 10px 12px;
             border-radius: 10px;
@@ -201,19 +201,12 @@
             display: block;
             margin-top: 12px;
         }
-
-        .levels-list {
-            font-size: 13px;
-            color: var(--hint-color);
-            margin-top: 12px;
-            line-height: 1.5;
-        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Карта лояльности с обоими кэшбэками -->
+        <!-- Карта лояльности с кэшбэками -->
         <div class="bank-card">
             <div class="card-header">
                 <div class="card-brand">🚗 АКМ Авто</div>
@@ -245,11 +238,19 @@
             <div class="d-value" id="discount">0%</div>
         </div>
 
-        <!-- Анкеты автомобиля -->
+        <!-- Анкеты автомобиля и выбор для записи -->
         <div class="card">
             <div class="title">🚙 Данные вашего автомобиля</div>
-            <div class="subtitle">Нужны для быстрой автоподстановки при записи и оценке по фото</div>
+            <div class="subtitle">Сохраните данные один раз для автоподстановки при записи</div>
             
+            <!-- Блок быстрого выбора авто, если оно уже сохранено -->
+            <div class="form-group" id="saved-car-section" style="display: none;">
+                <label>Выбрать из сохраненных:</label>
+                <select id="car-select" class="form-control" onchange="fillCarDataFromSelect()">
+                    <option value="">-- Введите данные ниже --</option>
+                </select>
+            </div>
+
             <div class="form-group">
                 <label>Марка</label>
                 <input type="text" id="car-brand" class="form-input" placeholder="Например: Toyota">
@@ -272,7 +273,7 @@
         <!-- Реферальная секция -->
         <div class="card">
             <div class="title">🎁 Реферальный бонус</div>
-            <div class="subtitle" id="next-target">Приглашайте друзей: друг получает 750 ₽, а вы — 10% с его первого визита + пассивный % с последующих!</div>
+            <div class="subtitle">Приглашайте друзей: друг получает 750 ₽, а вы — 10% с его первого визита + пассивный % с последующих!</div>
             
             <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px;">
                 <span>Бонусный баланс:</span>
@@ -297,24 +298,66 @@
             throw new Error('No user ID');
         }
 
+        let userGlobalData = null;
+
+        // Загрузка данных пользователя с сервера
         fetch(`https://botakmakm.onrender.com/api/user_data?user_id=${userId}`)
             .then(res => res.json())
             .then(data => {
-                document.getElementById('user-phone').innerText = `Тел: ${data.phone}`;
-                document.getElementById('turnover').innerText = `${data.turnover.toLocaleString()} ₽`;
-                document.getElementById('discount').innerText = `${data.discount}%`;
-                document.getElementById('personal-cashback').innerText = `${data.personal_cashback}%`;
-                document.getElementById('ref-rate').innerText = `${data.referral_passive_rate}%`;
-                document.getElementById('ref-count').innerText = `${data.ref_count} чел.`;
-                document.getElementById('bonus-balance').innerText = `${data.bonus_balance.toLocaleString()} ₽`;
+                userGlobalData = data;
+                document.getElementById('user-phone').innerText = `Тел: ${data.phone || 'Не указан'}`;
+                document.getElementById('turnover').innerText = `${(data.turnover || 0).toLocaleString()} ₽`;
+                document.getElementById('discount').innerText = `${data.discount || 0}%`;
+                document.getElementById('personal-cashback').innerText = `${data.personal_cashback || 1}%`;
+                document.getElementById('ref-rate').innerText = `${data.referral_passive_rate || 0}%`;
+                document.getElementById('ref-count').innerText = `${data.ref_count || 0} чел.`;
+                document.getElementById('bonus-balance').innerText = `${(data.bonus_balance || 0).toLocaleString()} ₽`;
 
-                if (data.car) {
-                    document.getElementById('car-brand').value = data.car.brand || '';
-                    document.getElementById('car-model').value = data.car.model || '';
-                    document.getElementById('car-vin').value = data.car.vin || '';
-                    document.getElementById('car-plate').value = data.car.plate || '';
+                // Обработка машин (поддержка и одиночного объекта, и массива)
+                let carsList = [];
+                if (data.cars && Array.isArray(data.cars)) {
+                    carsList = data.cars;
+                } else if (data.car) {
+                    carsList = [data.car];
                 }
+
+                if (carsList.length > 0) {
+                    window.userCars = carsList;
+                    const selectSection = document.getElementById('saved-car-section');
+                    const carSelect = document.getElementById('car-select');
+                    
+                    if (selectSection && carSelect) {
+                        selectSection.style.display = 'block';
+                        carsList.forEach((car, index) => {
+                            const opt = document.createElement('option');
+                            opt.value = index;
+                            opt.textContent = `${car.brand || ''} ${car.model || ''} (${car.plate || car.vin || 'Без номера'})`;
+                            carSelect.appendChild(opt);
+                        });
+                    }
+
+                    // Автозаполнение полей первым авто по умолчанию
+                    document.getElementById('car-brand').value = carsList[0].brand || '';
+                    document.getElementById('car-model').value = carsList[0].model || '';
+                    document.getElementById('car-vin').value = carsList[0].vin || '';
+                    document.getElementById('car-plate').value = carsList[0].plate || '';
+                }
+            })
+            .catch(err => {
+                console.error('Ошибка загрузки данных:', err);
             });
+
+        // Функция подстановки данных при выборе из выпадающего списка
+        function fillCarDataFromSelect() {
+            const index = document.getElementById('car-select').value;
+            if (index === "" || !window.userCars) return;
+
+            const car = window.userCars[index];
+            document.getElementById('car-brand').value = car.brand || '';
+            document.getElementById('car-model').value = car.model || '';
+            document.getElementById('car-vin').value = car.vin || '';
+            document.getElementById('car-plate').value = car.plate || '';
+        }
 
         function saveCarData() {
             const carData = {
@@ -336,6 +379,9 @@
                 } else {
                     alert('❌ Ошибка сохранения');
                 }
+            })
+            .catch(err => {
+                alert('❌ Ошибка сети при сохранении');
             });
         }
 

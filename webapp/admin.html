@@ -3,222 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>АКМ Авто — Панель Администратора</title>
+    <title>АКМ Авто — Панель администратора</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: var(--tg-theme-bg-color, #f4f4f5);
-            --text-color: var(--tg-theme-text-color, #111827);
-            --hint-color: var(--tg-theme-hint-color, #6b7280);
-            --card-bg: var(--tg-theme-secondary-bg-color, #ffffff);
-            --button-color: var(--tg-theme-button-color, #2563eb);
-            --button-text: var(--tg-theme-button-text-color, #ffffff);
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary: #007aff;
+            --success: #34c759;
+            --danger: #ff3b30;
+            --border: #e1e4e8;
         }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 16px;
+            padding: 20px;
         }
-
-        .container { max-width: 480px; margin: 0 auto; }
-        .card { background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; }
-        .title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-        .subtitle { font-size: 13px; color: var(--hint-color); margin-bottom: 16px; }
-
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 12px; color: var(--hint-color); margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
-        .form-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.15); background: var(--bg-color); color: var(--text-color); font-size: 15px; box-sizing: border-box; }
-
-        .btn { background-color: var(--button-color); color: var(--button-text); border: none; border-radius: 12px; padding: 12px 16px; font-size: 16px; font-weight: 600; width: 100%; cursor: pointer; text-align: center; margin-top: 12px; }
-        .btn-danger { background-color: #dc2626; }
-
-        /* Сетка плиток действий */
-        .tiles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-        .tile { background: var(--bg-color); border: 1px solid rgba(0,0,0,0.1); border-radius: 14px; padding: 16px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .tile:active { transform: scale(0.97); }
-        .tile-icon { font-size: 24px; margin-bottom: 8px; }
-        .tile-title { font-size: 14px; font-weight: 600; }
-
-        .client-item { padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.05); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .client-item:hover { background: rgba(0,0,0,0.02); }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h2 { text-align: center; color: #1a1a1a; }
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        button.success { background-color: var(--success); }
+        button.danger { background-color: var(--danger); }
+        
+        .client-item {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .client-item:hover { background: #f0f4f8; }
+        .client-item.selected {
+            border-color: var(--primary);
+            background: #eef5ff;
+        }
+        .hidden { display: none; }
+        .alert {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-error { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
 
-    <div class="container" id="auth-check">
-        <div class="card" style="text-align: center;">
-            <div class="title">🔒 Проверка доступа</div>
-            <div class="subtitle">Идет авторизация администратора...</div>
+<div class="container">
+    <h2>🛠 Панель администратора АКМ Авто</h2>
+    
+    <div id="alert-box" class="hidden alert"></div>
+
+    <!-- Поиск клиента -->
+    <div class="card">
+        <h3>1. Найти клиента</h3>
+        <div class="form-group">
+            <input type="text" id="search-input" placeholder="Введите телефон, гос. номер или VIN...">
         </div>
+        <button onclick="searchClients()">Найти</button>
+        
+        <div id="search-results" style="margin-top: 15px; max-height: 250px; overflow-y: auto;"></div>
     </div>
 
-    <div class="container" id="admin-panel" style="display: none;">
-        <!-- Поиск клиента -->
-        <div class="card">
-            <div class="title">🔍 Поиск клиента</div>
-            <div class="subtitle">Введите телефон, гос. номер, VIN или ID</div>
-            <div class="form-group">
-                <input type="text" id="search-query" class="form-input" placeholder="Например: +7999... или А000АА" oninput="searchClients()">
-            </div>
-            <div id="search-results" style="max-height: 200px; overflow-y: auto;"></div>
+    <!-- Управление выбранным клиентом -->
+    <div id="client-actions-card" class="card hidden">
+        <h3>2. Управление балансом и оборотом</h3>
+        <p id="selected-client-info" style="font-weight: 500; color: #555;"></p>
+        
+        <div class="form-group">
+            <label>Сумма операции (руб.):</label>
+            <input type="number" id="tx-amount" placeholder="Например: 15000">
         </div>
 
-        <!-- Выбранный клиент -->
-        <div class="card" id="selected-client-card" style="display: none; border: 2px solid #2563eb;">
-            <div class="title" id="cl-name">Клиент АКМ Авто</div>
-            <div class="subtitle" id="cl-info">Телефон: - | Баланс: 0 ₽</div>
-
-            <div class="tiles-grid">
-                <div class="tile" onclick="openAction('add')">
-                    <div class="tile-icon">➕</div>
-                    <div class="tile-title">Внести визит (Оборот)</div>
-                </div>
-                <div class="tile" onclick="openAction('burn')">
-                    <div class="tile-icon">➖</div>
-                    <div class="tile-title">Списать бонусы</div>
-                </div>
-            </div>
+        <div class="form-group" id="first-visit-group">
+            <label>
+                <input type="checkbox" id="is-first-visit" style="width: auto; margin-right: 8px;"> 
+                Это первый визит клиента (активировать реферальный бонус другу)
+            </label>
         </div>
 
-        <!-- Форма операции -->
-        <div class="card" id="action-form-card" style="display: none;">
-            <div class="title" id="action-title">Действие</div>
-            <div class="form-group" style="margin-top: 12px;">
-                <label id="action-label">Сумма (₽)</label>
-                <input type="number" id="action-amount" class="form-input" placeholder="0">
-            </div>
-
-            <!-- Чекбокс первого визита -->
-            <div class="form-group" id="first-visit-group" style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
-                <input type="checkbox" id="is-first-visit" style="width: 20px; height: 20px; cursor: pointer;">
-                <label for="is-first-visit" style="margin-bottom: 0; cursor: pointer; text-transform: none; font-size: 14px;">
-                    🎉 Первый визит (начислить бонус рефереру)
-                </label>
-            </div>
-
-            <button class="btn" id="action-btn" onclick="executeAction()">Подтвердить</button>
-            <button class="btn" style="background: transparent; color: var(--hint-color); margin-top: 6px;" onclick="cancelAction()">Отмена</button>
+        <div style="display: flex; gap: 10px;">
+            <button class="success" onclick="addTransaction()">➕ Начислить чек</button>
+            <button class="danger" onclick="burnBonuses()">➖ Списать баллы</button>
         </div>
     </div>
+</div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        const adminId = tg.initDataUnsafe?.user?.id;
+<script>
+    // Базовый URL вашего бэкенда с aiohttp
+    const API_BASE = "http://localhost:8000/api/admin";
+    
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    
+    // Получаем ID администратора из Telegram WebApp (либо подставляем заглушку для тестов)
+    const adminId = tg.initDataUnsafe?.user?.id || 8633592767; 
+    let selectedUserId = null;
 
-        let activeClient = null;
-        let currentActionType = null;
+    function showAlert(text, isError = false) {
+        const box = document.getElementById("alert-box");
+        box.textContent = text;
+        box.className = `alert ${isError ? 'alert-error' : 'alert-success'}`;
+        setTimeout(() => box.classList.add("hidden"), 4000);
+    }
 
-        if (!adminId) {
-            document.body.innerHTML = '<h3 style="text-align:center; margin-top: 50px;">Ошибка доступа: откройте через Telegram</h3>';
-        } else {
-            document.getElementById('auth-check').style.display = 'none';
-            document.getElementById('admin-panel').style.display = 'block';
-        }
+    async.searchClients = async function() {
+        const query = document.getElementById("search-input").value.trim();
+        if (!query) return;
 
-        let searchTimeout = null;
-        function searchClients() {
-            clearTimeout(searchTimeout);
-            const query = document.getElementById('search-query').value;
-            if (query.length < 2) {
-                document.getElementById('search-results').innerHTML = '';
-                return;
-            }
-
-            searchTimeout = setTimeout(() => {
-                fetch(`https://botakmakm.onrender.com/api/admin/search?admin_id=${adminId}&query=${encodeURIComponent(query)}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        const container = document.getElementById('search-results');
-                        container.innerHTML = '';
-                        if (data.success && data.users && data.users.length > 0) {
-                            data.users.forEach(user => {
-                                const div = document.createElement('div');
-                                div.className = 'client-item';
-                                div.innerHTML = `<div><strong>${user.phone}</strong><br><small>${user.car_info}</small></div><div style="text-align:right;">Баланс: ${user.bonus_balance} ₽<br><small>Оборот: ${user.turnover} ₽</small></div>`;
-                                div.onclick = () => selectClient(user);
-                                container.appendChild(div);
-                            });
-                        } else {
-                            container.innerHTML = '<div style="padding: 10px; color: var(--hint-color); text-align: center;">Ничего не найдено</div>';
-                        }
-                    });
-            }, 300);
-        }
-
-        function selectClient(user) {
-            activeClient = user;
-            document.getElementById('cl-name').innerText = `Клиент ID: ${user.user_id}`;
-            document.getElementById('cl-info').innerText = `Тел: ${user.phone} | Бонусы: ${user.bonus_balance} ₽ | Оборот: ${user.turnover} ₽`;
-            document.getElementById('selected-client-card').style.display = 'block';
-            document.getElementById('search-results').innerHTML = '';
-            document.getElementById('search-query').value = '';
-            document.getElementById('action-form-card').style.display = 'none';
-        }
-
-        function openAction(type) {
-            currentActionType = type;
-            const card = document.getElementById('action-form-card');
-            card.style.display = 'block';
+        try {
+            const res = await fetch(`${API_BASE}/search?admin_id=${adminId}&query=${encodeURIComponent(query)}`);
+            const data = await res.json();
             
-            const firstVisitGroup = document.getElementById('first-visit-group');
+            const container = document.getElementById("search-results");
+            container.innerHTML = "";
 
-            if (type === 'add') {
-                document.getElementById('action-title').innerText = '➕ Внести сумму чека клиента';
-                document.getElementById('action-label').innerText = 'Сумма чека (₽)';
-                document.getElementById('action-btn').className = 'btn';
-                firstVisitGroup.style.display = 'flex';
-            } else {
-                document.getElementById('action-title').innerText = '➖ Списать бонусы';
-                document.getElementById('action-label').innerText = 'Сумма списания (₽)';
-                document.getElementById('action-btn').className = 'btn btn-danger';
-                firstVisitGroup.style.display = 'none';
-            }
-            document.getElementById('action-amount').value = '';
-            document.getElementById('is-first-visit').checked = false;
-        }
-
-        function cancelAction() {
-            document.getElementById('action-form-card').style.display = 'none';
-        }
-
-        function executeAction() {
-            const amount = parseFloat(document.getElementById('action-amount').value);
-            if (!amount || amount <= 0) {
-                alert('Введите корректную сумму');
+            if (!data.success || data.users.length === 0) {
+                container.innerHTML = "<p style='color: #777; text-align: center;'>Клиенты не найдены</p>";
                 return;
             }
 
-            const endpoint = currentActionType === 'add' ? '/api/admin/add_transaction' : '/api/admin/burn_bonuses';
-            const isFirstVisit = document.getElementById('is-first-visit').checked;
+            data.users.forEach(u => {
+                const div = document.createElement("div");
+                div.className = "client-item";
+                div.innerHTML = `
+                    <strong>📱 ${u.phone || 'Без телефона'}</strong> (ID: ${u.user_id})<br>
+                    <small>🚗 Авто: ${u.car_info} | Баланс: <b>${u.bonus_balance} баллов</b> | Оборот: <b>${u.turnover} ₽</b></small>
+                `;
+                div.onclick = () => selectClient(u, div);
+                container.appendChild(div);
+            });
+        } catch (e) {
+            showAlert("Ошибка соединения с сервером", true);
+        }
+    }
 
-            fetch(`https://botakmakm.onrender.com${endpoint}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+    function selectClient(user, element) {
+        document.querySelectorAll(".client-item").forEach(el => el.classList.remove("selected"));
+        element.classList.add("selected");
+        
+        selectedUserId = user.user_id;
+        document.getElementById("selected-client-info").innerHTML = 
+            `Выбран клиент: <b>${user.phone}</b> (Баланс: ${user.bonus_balance} баллов, Оборот: ${user.turnover} ₽)`;
+        document.getElementById("client-actions-card").classList.remove("hidden");
+    }
+
+    async function addTransaction() {
+        if (!selectedUserId) return;
+        const amount = parseFloat(document.getElementById("tx-amount").value);
+        const isFirstVisit = document.getElementById("is-first-visit").checked;
+
+        if (isNaN(amount) || amount <= 0) {
+            showAlert("Введите корректную сумму", true);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/add_transaction`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     admin_id: adminId,
-                    user_id: activeClient.user_id,
+                    user_id: selectedUserId,
                     amount: amount,
                     is_first_visit: isFirstVisit
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    alert('✅ Операция успешно выполнена!');
-                    cancelAction();
-                    document.getElementById('selected-client-card').style.display = 'none';
-                } else {
-                    alert('❌ Ошибка: ' + (data.error || 'Не удалось выполнить'));
-                }
-            })
-            .catch(err => {
-                alert('❌ Ошибка сети');
             });
+            const data = await res.json();
+            if (data.success) {
+                showAlert("Транзакция успешно проведена!");
+                document.getElementById("tx-amount").value = "";
+                searchClients(); // обновить данные в поиске
+            } else {
+                showAlert(data.error || "Ошибка выполнения", true);
+            }
+        } catch (e) {
+            showAlert("Ошибка отправки запроса", true);
         }
-    </script>
+    }
+
+    async function burnBonuses() {
+        if (!selectedUserId) return;
+        const amount = parseFloat(document.getElementById("tx-amount").value);
+
+        if (isNaN(amount) || amount <= 0) {
+            showAlert("Введите корректную сумму для списания", true);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/burn_bonuses`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    admin_id: adminId,
+                    user_id: selectedUserId,
+                    amount: amount
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAlert("Баллы успешно списаны!");
+                document.getElementById("tx-amount").value = "";
+                searchClients();
+            } else {
+                showAlert(data.error || "Ошибка списания", true);
+            }
+        } catch (e) {
+            showAlert("Ошибка отправки запроса", true);
+        }
+    }
+</script>
 </body>
 </html>

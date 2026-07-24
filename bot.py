@@ -70,17 +70,19 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 router = Router()
 
-# Главное меню бота
+# Главное меню бота (исправленные скобки)
 def get_main_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💳 Карта лояльности и Авто", web_app=WebAppInfo(url=WEBAPP_URL))],
-        [InlineKeyboardButton(text="📅 Записаться в сервис", web_app=WebAppInfo(url=WEBAPP_URL))],
-        [InlineKeyboardButton(text="📸 Оценить ремонт по фото", callback_data="photo_estimate")],
-        [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="ref_menu")],
-        [InlineKeyboardButton(text="📞 Связаться с мастером", callback_data="contact")]
-    ])
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💳 Карта лояльности и Авто", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [InlineKeyboardButton(text="📅 Записаться в сервис", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [InlineKeyboardButton(text="📸 Оценить ремонт по фото", callback_data="photo_estimate")],
+            [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="ref_menu")],
+            [InlineKeyboardButton(text="📞 Связаться с мастером", callback_data="contact")]
+        ]
+    )
 
-# Обработчик команды /start (с поддержкой рефералов и запроса телефона)
+# Обработчик команды /start
 @router.message(Command("start"))
 async def cmd_start(message: Message):
     user_id = str(message.from_user.id)
@@ -88,27 +90,20 @@ async def cmd_start(message: Message):
     
     db = load_db()
     
-    # Если пользователя еще нет в базе, создаем запись
     if user_id not in db:
         referrer_id = args[1] if len(args) > 1 and args[1] != user_id else None
         
         db[user_id] = {
             "phone": None,
             "turnover": 0.0,
-            "bonus_balance": 750.0, # Приветственные бонусы на первый визит
+            "bonus_balance": 750.0,
             "active_refs": 0,
             "invited_by": referrer_id,
             "first_visit_done": False,
             "car": {"brand": "", "model": "", "vin": "", "plate": ""}
         }
-        
-        # Если пришел по реферальной ссылке и пригласивший существует
-        if referrer_id and referrer_id in db:
-            pass # Учет реферала произойдет при первом визите через кассу/админку
-            
         save_db(db)
 
-    # Проверяем, привязан ли телефон
     user_data = db.get(user_id, {})
     if not user_data.get("phone") or user_data.get("phone") == "Не указан":
         keyboard = ReplyKeyboardMarkup(
@@ -217,7 +212,7 @@ async def contact_callback(callback: CallbackQuery):
     await callback.message.answer("📞 Телефон: +7 (999) 000-00-00\n📍 Адрес: ул. Автомобильная, 1")
     await callback.answer()
 
-# === АДМИНСКАЯ КОМАНДА ФИКСАЦИИ ВИЗИТА (Текстовая) ===
+# === АДМИНСКАЯ КОМАНДА ФИКСАЦИИ ВИЗИТА ===
 @router.message(Command("visit"))
 async def admin_register_visit(message: Message):
     if message.from_user.id not in ADMIN_IDS:
@@ -299,7 +294,6 @@ async def admin_burn_bonuses(message: Message):
     save_db(db)
     await message.answer(f"✅ Успешно списано {burn_amount} бонусов у {client_id}.")
 
-# === КОМАНДА ВЫЗОВА АДМИН-ПАНЕЛИ В БОТЕ ===
 @router.message(Command("admin"))
 async def admin_panel_command(message: Message):
     if message.from_user.id in ADMIN_IDS:
@@ -358,7 +352,7 @@ async def handle_save_car(request):
     return web.json_response({"success": False})
 
 
-# === API ДЛЯ АДМИН-ПАНЕЛИ (СЕРВЕРНАЯ ЧАСТЬ) ===
+# === API ДЛЯ АДМИН-ПАНЕЛИ ===
 async def handle_admin_search(request):
     admin_id = request.rel_url.query.get('admin_id')
     if not admin_id or int(admin_id) not in ADMIN_IDS:
@@ -408,12 +402,10 @@ async def handle_admin_add_transaction(request):
         client = db[user_id]
         client["turnover"] += amount
         
-        # Начисляем личный кэшбэк
         personal_rate, _, _ = get_personal_cashback_rate(client["turnover"])
         client_cashback = amount * (personal_rate / 100.0)
         client["bonus_balance"] += client_cashback
 
-        # Реферальный пассивный кэшбэк наставнику
         referrer_id = client.get("invited_by")
         if referrer_id and referrer_id in db:
             ref_owner = db[referrer_id]
@@ -464,16 +456,13 @@ async def main():
     dp.include_router(router)
     app = web.Application()
     
-    # Клиентские API
     app.router.add_get('/api/user_data', handle_api_user_data)
     app.router.add_post('/api/save_car', handle_save_car)
     
-    # Админские API
     app.router.add_get('/api/admin/search', handle_admin_search)
     app.router.add_post('/api/admin/add_transaction', handle_admin_add_transaction)
     app.router.add_post('/api/admin/burn_bonuses', handle_admin_burn_bonuses)
     
-    # Статика (раздача файлов из папки ./webapp)
     app.router.add_static('/', path='./webapp', name='webapp')
     
     runner = web.AppRunner(app)

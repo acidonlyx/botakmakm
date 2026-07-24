@@ -70,42 +70,60 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 router = Router()
 
+# 1. Обновляем главное меню, добавляя кнопку оценки по фото
 def get_main_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Карта лояльности и Авто", web_app=WebAppInfo(url=WEBAPP_URL))],
+        [InlineKeyboardButton(text="📅 Записаться в сервис", web_app=WebAppInfo(url=WEBAPP_URL))],
+        [InlineKeyboardButton(text="📸 Оценить ремонт по фото", callback_data="photo_estimate")],
         [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="ref_menu")],
         [InlineKeyboardButton(text="📞 Связаться с мастером", callback_data="contact")]
     ])
 
-@router.message(Command("start"))
-async def cmd_start(message: Message):
-    user_id = str(message.from_user.id)
-    args = message.text.split()
-    
-    db = load_db()
-    if user_id not in db:
-        db[user_id] = {
-            "phone": "Не указан",
-            "turnover": 0.0,
-            "bonus_balance": 0.0,
-            "active_refs": 0,
-            "invited_by": None,
-            "first_visit_done": False,
-            "car": {"brand": "", "model": "", "vin": "", "plate": ""}
-        }
-        if len(args) > 1:
-            referrer_id = args[1]
-            if referrer_id != user_id and referrer_id in db:
-                db[user_id]["invited_by"] = referrer_id
-                db[user_id]["bonus_balance"] += 750.0 # Приветственный бонус другу
-        save_db(db)
-
-    await message.answer(
-        "👋 Добро пожаловать в **АКМ Авто**!\n\n"
-        "Ваша карта лояльности, кэшбэк и 750 ₽ на первый визит активированы. Откройте приложение, чтобы заполнить данные авто и следить за бонусами.",
-        reply_markup=get_main_keyboard(),
+# 2. Обработчик нажатия на кнопку оценки по фото
+@router.callback_query(F.data == "photo_estimate")
+async def photo_estimate_callback(callback: Message):
+    await callback.message.answer(
+        "📸 **Оценка ремонта по фотографии**\n\n"
+        "Пожалуйста, отправьте в этот чат **фотографию повреждения** или узла автомобиля.\n\n"
+        "*Совет:* Желательно также указать марку и модель авто, чтобы мастер смог быстрее сориентировать вас по стоимости.",
         parse_mode="Markdown"
     )
+    await callback.answer()
+
+# 3. Обработчик входящих фото от клиентов
+@router.message(F.photo)
+async def handle_client_photo(message: Message):
+    user_id = str(message.from_user.id)
+    db = load_db()
+    
+    # Достаем данные машины клиента, если они заполнены
+    user_data = db.get(user_id, {})
+    car = user_data.get("car", {})
+    phone = user_data.get("phone", "Не указан")
+    
+    car_info = f"{car.get('brand', '')} {car.get('model', '')} (Гос. номер: {car.get('plate', 'не указан')}, VIN: {car.get('vin', 'не указан')})"
+    
+    # Пересылаем фото всем администраторам
+    for admin_id in ADMIN_IDS:
+        try:
+            caption = (
+                f"📸 **Новая заявка на оценку по фото!**\n\n"
+                f"👤 Клиент ID: `{user_id}`\n"
+                f"📞 Телефон: {phone}\n"
+                f"🚗 Автомобиль: {car_info}\n"
+                f"💬 Текст к фото: {message.caption or 'отсутствует'}"
+            )
+            await bot.send_photo(
+                chat_id=admin_id,
+                photo=message.photo[-1].file_id,
+                caption=caption,
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            print(f"Не удалось отправить фото админу {admin_id}: {e}")
+
+    await message.answer("✅ Ваша фотография и данные автомобиля успешно переданы мастерам! Скоро мы свяжемся с вами для расчета стоимости.")
 
 @router.callback_query(F.data == "ref_menu")
 async def ref_menu_callback(callback: Message):

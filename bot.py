@@ -6,7 +6,8 @@ from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
 from aiogram.types import (
     Message, CallbackQuery, InlineKeyboardButton, 
-    ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InputMediaPhoto
+    ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InputMediaPhoto,
+    WebAppData
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.state import State, StatesGroup
@@ -14,6 +15,9 @@ from aiogram.fsm.state import State, StatesGroup
 TOKEN = "8924615859:AAE0LqHClZasq1Zii768_N9DWFlVvgynmyI"
 ADMIN_IDS = [8633592767]
 MANAGER_CHAT_ID = 8633592767  # Чат/админ, куда летят заявки на ремонт и фото
+
+# Укажите реальный URL вашего развернутого Mini App (или тестовый домен)
+WEB_APP_URL = "https://your-domain.com/index.html" 
 
 DB_FILE = "cards_db.json"
 
@@ -100,11 +104,17 @@ router = Router()
 
 def get_main_keyboard():
     builder = InlineKeyboardBuilder()
+    # Кнопка открытия Mini App (Личный кабинет с плитками)
+    builder.row(InlineKeyboardButton(text="📱 Личный кабинет (App)", web_app=web_app_url_obj()))
     builder.row(InlineKeyboardButton(text="💳 Карта лояльности", callback_data="loyalty_card"))
     builder.row(InlineKeyboardButton(text="📅 Записаться на ремонт", callback_data="book_repair"))
     builder.row(InlineKeyboardButton(text="📸 Оценить по фото", callback_data="photo_estimate"))
     builder.row(InlineKeyboardButton(text="📞 Контактная информация", callback_data="contact_info"))
     return builder.as_markup()
+
+def web_app_url_obj():
+    from aiogram.types import WebAppInfo
+    return WebAppInfo(url=WEB_APP_URL)
 
 @router.message(Command("start"))
 async def cmd_start(message: Message, state):
@@ -179,13 +189,42 @@ async def handle_contact(message: Message):
     await message.answer("Главное меню:", reply_markup=get_main_keyboard())
 
 
+# Обработка данных, прилетающих из Mini App через tg.sendData()
+@router.message(F.web_app_data)
+async def handle_web_app_data(message: Message):
+    try:
+        data = json.loads(message.web_app_data.data)
+        action = data.get("action")
+        user_id = str(message.from_user.id)
+        db = load_db()
+
+        if action == "repair":
+            car_info = data.get("car")
+            reason = data.get("reason")
+            phone = db.get(user_id, {}).get("phone", "Не указан")
+
+            text = (
+                "📅 **Новая заявка на ремонт из Mini App**\n\n"
+                f"👤 Клиент ID: `{user_id}`\n"
+                f"📞 Телефон: {phone}\n"
+                f"🚘 Автомобиль: {car_info}\n"
+                f"💬 Описание: {reason}"
+            )
+            await bot.send_message(MANAGER_CHAT_ID, text, parse_mode="Markdown")
+            await message.answer("✅ Ваша заявка на ремонт успешно отправлена менеджерам!", reply_markup=get_main_keyboard())
+            
+    except Exception as e:
+        logging.error(f"Ошибка обработки WebApp данных: {e}")
+        await message.answer("❌ Произошла ошибка при отправке данных.", reply_markup=get_main_keyboard())
+
+
 # === КОНТАКТЫ ===
 @router.callback_query(F.data == "contact_info")
 async def contact_info_callback(callback: CallbackQuery):
     text = (
         "📞 **Контактная информация АКМ Авто**\n\n"
         "📱 Телефон: +7 (921) 950-01-10\n"
-        "📍 Адрес: Рубежная ул., 2В\n"
+        "📍 Адрес: Рубежная ул., 2Л\n"
         "⏰ График работы: с 10:00 до 20:00"
     )
     builder = InlineKeyboardBuilder()
@@ -194,7 +233,7 @@ async def contact_info_callback(callback: CallbackQuery):
     await callback.answer()
 
 
-# === КАРТА ЛОЯЛЬНОСТИ ===
+# === КАРТА ЛОЯЛЬНОСТИ (Дублирующий текстовый интерфейс) ===
 @router.callback_query(F.data == "loyalty_card")
 async def loyalty_card_callback(callback: CallbackQuery):
     user_id = str(callback.from_user.id)

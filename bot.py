@@ -4,7 +4,8 @@ import asyncio
 from aiohttp import web
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram.types import Message, CallbackQuery, WebAppInfo, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 TOKEN = "8924615859:AAFBt-yx9fFQmPM7JZ8k6Dp4jPrCQmlThXo"
 WEBAPP_URL = "https://botakmakm.onrender.com/index.html"
@@ -70,17 +71,15 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 router = Router()
 
-# Главное меню бота (исправленные скобки)
+# Главное меню бота через билдер (без ошибок со скобками)
 def get_main_keyboard():
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💳 Карта лояльности и Авто", web_app=WebAppInfo(url=WEBAPP_URL))],
-            [InlineKeyboardButton(text="📅 Записаться в сервис", web_app=WebAppInfo(url=WEBAPP_URL))],
-            [InlineKeyboardButton(text="📸 Оценить ремонт по фото", callback_data="photo_estimate")],
-            [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="ref_menu")],
-            [InlineKeyboardButton(text="📞 Связаться с мастером", callback_data="contact")]
-        ]
-    )
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="💳 Карта лояльности и Авто", web_app=WebAppInfo(url=WEBAPP_URL)))
+    builder.row(InlineKeyboardButton(text="📅 Записаться в сервис", web_app=WebAppInfo(url=WEBAPP_URL)))
+    builder.row(InlineKeyboardButton(text="📸 Оценить ремонт по фото", callback_data="photo_estimate"))
+    builder.row(InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="ref_menu"))
+    builder.row(InlineKeyboardButton(text="📞 Связаться с мастером", callback_data="contact"))
+    return builder.as_markup()
 
 # Обработчик команды /start
 @router.message(Command("start"))
@@ -105,7 +104,7 @@ async def cmd_start(message: Message):
         save_db(db)
 
     user_data = db.get(user_id, {})
-    if not user_data.get("phone") or user_data.get("phone") == "Не указан":
+    if not user_data.get("phone") or user_data.get("phone"] == "Не указан":
         keyboard = ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)]],
             resize_keyboard=True,
@@ -297,10 +296,9 @@ async def admin_burn_bonuses(message: Message):
 @router.message(Command("admin"))
 async def admin_panel_command(message: Message):
     if message.from_user.id in ADMIN_IDS:
-        markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🛠 Открыть панель управления", web_app=WebAppInfo(url="https://botakmakm.onrender.com/admin.html"))]
-        ])
-        await message.answer("🔐 Защищенная панель администратора АКМ Авто:", reply_markup=markup)
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="🛠 Открыть панель управления", web_app=WebAppInfo(url="https://botakmakm.onrender.com/admin.html")))
+        await message.answer("🔐 Защищенная панель администратора АКМ Авто:", reply_markup=builder.as_markup())
     else:
         pass
 

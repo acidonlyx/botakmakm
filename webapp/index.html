@@ -108,7 +108,7 @@
     <!-- Реферальная ссылка -->
     <div class="tile full">
         <div class="tile-title">Реферальная программа</div>
-        <p style="font-size: 13px; color: var.text-muted; margin: 4px 0 10px 0;">Приглашайте друзей и получайте пассивный доход с их чеков!</p>
+        <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 10px 0;">Приглашайте друзей и получайте пассивный доход с их чеков!</p>
         <input type="text" id="ref-link" readonly style="font-size: 12px; text-align: center;" onclick="this.select()">
     </div>
 
@@ -118,10 +118,10 @@
         <div class="car-card" style="color: var(--text-muted); text-align: center;">Загрузка автомобилей...</div>
     </div>
 
-    <!-- Быстрая запись на ремонт прямо из Mini App -->
+    <!-- Быстрая запись на ремонт -->
     <div class="section-title">📅 Записаться на ремонт</div>
     <div class="tile full" style="padding: 14px;">
-        <label style="font-size: 13px; color: var(--text-muted);">Выберите или укажите авто:</label>
+        <label style="font-size: 13px; color: var(--text-muted);">Укажите авто (Марка, гос. номер или VIN):</label>
         <input type="text" id="repair-car" placeholder="Например: Kia Sportage (А000АА178)">
         
         <label style="font-size: 13px; color: var(--text-muted); display: block; margin-top: 10px;">Опишите проблему:</label>
@@ -135,35 +135,42 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // Демо-данные для локального тестирования (в реальной среде подгружаются из Telegram/Backend)
-    const user = {
-        balance: 750,
-        discount: 0,
-        cashbackRate: 1,
-        refsCount: 0,
-        refLink: `https://t.me/akmautospb_bot?start=${tg.initDataUnsafe?.user?.id || 'demo'}`,
-        cars: [
-            { brand: "Kia Sportage", plate: "А000АА178", vin: "XWE...12345" }
-        ]
-    };
+    // Загрузка актуальных данных пользователя с бэкенда
+    async function loadUserData() {
+        const userId = tg.initDataUnsafe?.user?.id;
+        if (!userId) return;
 
-    // Отрисовка интерфейса
-    document.getElementById("val-balance").textContent = user.balance.toLocaleString() + " 🪩";
-    document.getElementById("val-discount").textContent = user.discount + "%";
-    document.getElementById("val-cashback").textContent = user.cashbackRate + "%";
-    document.getElementById("val-refs").textContent = user.refsCount + " чел.";
-    document.getElementById("ref-link").value = user.refLink;
+        try {
+            const res = await fetch(`/api/user?user_id=${userId}`);
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById("val-balance").textContent = (data.balance || 0).toLocaleString() + " 🪩";
+                document.getElementById("val-discount").textContent = (data.discount || 0) + "%";
+                document.getElementById("val-cashback").textContent = (data.cashback_rate || 1) + "%";
+                document.getElementById("val-refs").textContent = (data.refs_count || 0) + " чел.";
+                document.getElementById("ref-link").value = `https://t.me/akmautospb_bot?start=${userId}`;
 
-    const garageDiv = document.getElementById("garage-container");
-    garageDiv.innerHTML = "";
-    user.cars.forEach((car, index) => {
-        garageDiv.innerHTML += `
-            <div class="car-card">
-                <b>🚗 Авто ${index + 1}:</b> ${car.brand}<br>
-                <span style="color: var(--text-muted);">Гос. номер: ${car.plate} | VIN: ${car.vin}</span>
-            </div>
-        `;
-    });
+                const garageDiv = document.getElementById("garage-container");
+                garageDiv.innerHTML = "";
+                if (data.cars && data.cars.length > 0) {
+                    data.cars.forEach((car, index) => {
+                        garageDiv.innerHTML += `
+                            <div class="car-card">
+                                <b>🚗 Авто ${index + 1}:</b> ${car.brand || 'Не указано'}<br>
+                                <span style="color: var(--text-muted);">Гос. номер: ${car.plate || '-'} | VIN: ${car.vin || '-'}</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    garageDiv.innerHTML = `<div class="car-card" style="color: var(--text-muted); text-align: center;">Гараж пуст. Добавьте авто через бота.</div>`;
+                }
+            }
+        } catch (e) {
+            console.error("Ошибка загрузки данных пользователя", e);
+        }
+    }
+
+    loadUserData();
 
     function sendRepairRequest() {
         const car = document.getElementById("repair-car").value.trim();
@@ -174,7 +181,6 @@
             return;
         }
 
-        // Передаем данные обратно в Telegram-бота через метод sendData
         const payload = JSON.stringify({
             action: "repair",
             car: car,

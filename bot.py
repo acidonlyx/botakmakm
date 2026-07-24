@@ -4,7 +4,7 @@ import asyncio
 from aiohttp import web
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 TOKEN = "8924615859:AAFBt-yx9fFQmPM7JZ8k6Dp4jPrCQmlThXo"
 WEBAPP_URL = "https://botakmakm.onrender.com/index.html"
@@ -70,7 +70,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 router = Router()
 
-# 1. Обновляем главное меню, добавляя кнопку оценки по фото
+# Главное меню бота
 def get_main_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Карта лояльности и Авто", web_app=WebAppInfo(url=WEBAPP_URL))],
@@ -80,9 +80,78 @@ def get_main_keyboard():
         [InlineKeyboardButton(text="📞 Связаться с мастером", callback_data="contact")]
     ])
 
-# 2. Обработчик нажатия на кнопку оценки по фото
+# Обработчик команды /start (с поддержкой рефералов и запроса телефона)
+@router.message(Command("start"))
+async def cmd_start(message: Message):
+    user_id = str(message.from_user.id)
+    args = message.text.split()
+    
+    db = load_db()
+    
+    # Если пользователя еще нет в базе, создаем запись
+    if user_id not in db:
+        referrer_id = args[1] if len(args) > 1 and args[1] != user_id else None
+        
+        db[user_id] = {
+            "phone": None,
+            "turnover": 0.0,
+            "bonus_balance": 750.0, # Приветственные бонусы на первый визит
+            "active_refs": 0,
+            "invited_by": referrer_id,
+            "first_visit_done": False,
+            "car": {"brand": "", "model": "", "vin": "", "plate": ""}
+        }
+        
+        # Если пришел по реферальной ссылке и пригласивший существует
+        if referrer_id and referrer_id in db:
+            pass # Учет реферала произойдет при первом визите через кассу/админку
+            
+        save_db(db)
+
+    # Проверяем, привязан ли телефон
+    user_data = db.get(user_id, {})
+    if not user_data.get("phone") or user_data.get("phone") == "Не указан":
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)]],
+            resize_keyboard=True,
+            one_time_keyboard=True
+        ]
+        await message.answer(
+            "👋 Добро пожаловать в **АКМ Авто**!\n\n"
+            "Для активации вашей персональной карты лояльности и начисления приветственных **750 бонусов**, пожалуйста, поделитесь вашим номером телефона с помощью кнопки ниже 👇",
+            reply_markup=keyboard,
+            parse_mode="Markdown"
+        )
+    else:
+        await message.answer(
+            "👋 Рады снова видеть вас в **АКМ Авто**!\n\n"
+            "Воспользуйтесь меню ниже для управления картой лояльности, записи или связи с нами:",
+            reply_markup=get_main_keyboard(),
+            parse_mode="Markdown"
+        )
+
+# Обработчик получения контакта от пользователя
+@router.message(F.contact)
+async def handle_contact(message: Message):
+    user_id = str(message.from_user.id)
+    phone = message.contact.phone_number
+    
+    db = load_db()
+    if user_id not in db:
+        db[user_id] = {"turnover": 0.0, "bonus_balance": 750.0, "active_refs": 0, "invited_by": None, "first_visit_done": False, "car": {}}
+    
+    db[user_id]["phone"] = phone
+    save_db(db)
+    
+    await message.answer(
+        "✅ Телефон успешно сохранен! Ваша карта лояльности активна.",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await message.answer("Главное меню:", reply_markup=get_main_keyboard())
+
+# Обработчик нажатия на кнопку оценки по фото
 @router.callback_query(F.data == "photo_estimate")
-async def photo_estimate_callback(callback: Message):
+async def photo_estimate_callback(callback: CallbackQuery):
     await callback.message.answer(
         "📸 **Оценка ремонта по фотографии**\n\n"
         "Пожалуйста, отправьте в этот чат **фотографию повреждения** или узла автомобиля.\n\n"
@@ -91,7 +160,7 @@ async def photo_estimate_callback(callback: Message):
     )
     await callback.answer()
 
-# 3. Обработчик входящих фото от клиентов
+# Обработчик входящих фото от клиентов
 @router.message(F.photo)
 async def handle_client_photo(message: Message):
     user_id = str(message.from_user.id)
@@ -124,7 +193,7 @@ async def handle_client_photo(message: Message):
     await message.answer("✅ Ваша фотография и данные автомобиля успешно переданы мастерам! Скоро мы свяжемся с вами для расчета стоимости.")
 
 @router.callback_query(F.data == "ref_menu")
-async def ref_menu_callback(callback: Message):
+async def ref_menu_callback(callback: CallbackQuery):
     user_id = str(callback.from_user.id)
     db = load_db()
     user = db.get(user_id, {"active_refs": 0, "bonus_balance": 0})
@@ -144,7 +213,7 @@ async def ref_menu_callback(callback: Message):
     await callback.answer()
 
 @router.callback_query(F.data == "contact")
-async def contact_callback(callback: Message):
+async def contact_callback(callback: CallbackQuery):
     await callback.message.answer("📞 Телефон: +7 (999) 000-00-00\n📍 Адрес: ул. Автомобильная, 1")
     await callback.answer()
 
@@ -239,7 +308,6 @@ async def admin_panel_command(message: Message):
         ])
         await message.answer("🔐 Защищенная панель администратора АКМ Авто:", reply_markup=markup)
     else:
-        # Для остальных пользователей скрываем факт наличия команды
         pass
 
 
@@ -405,7 +473,7 @@ async def main():
     app.router.add_post('/api/admin/add_transaction', handle_admin_add_transaction)
     app.router.add_post('/api/admin/burn_bonuses', handle_admin_burn_bonuses)
     
-    # Статика (раздача файлов index.html, admin.html из папки ./webapp)
+    # Статика (раздача файлов из папки ./webapp)
     app.router.add_static('/', path='./webapp', name='webapp')
     
     runner = web.AppRunner(app)

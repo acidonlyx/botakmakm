@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>АКМ Авто — Карта лояльности и Запись</title>
+    <title>АКМ Авто — Личный кабинет</title>
+    <!-- Подключаем Telegram Web App скрипт -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             --bg-color: var(--tg-theme-bg-color, #f4f4f5);
-            --text-color: var(--tg-theme-text-color, #111827);
-            --hint-color: var(--tg-theme-hint-color, #6b7280);
-            --card-bg: var(--tg-theme-secondary-bg-color, #ffffff);
+            --text-color: var(--tg-theme-text-color, #18181b);
+            --hint-color: var(--tg-theme-hint-color, #71717a);
             --button-color: var(--tg-theme-button-color, #2563eb);
-            --button-text: var(--tg-theme-button-text-color, #ffffff);
+            --button-text-color: var(--tg-theme-button-text-color, #ffffff);
+            --card-bg: var(--tg-theme-secondary-bg-color, #ffffff);
         }
 
         body {
@@ -24,373 +25,540 @@
         }
 
         .container {
-            max-width: 480px;
+            max-width: 600px;
             margin: 0 auto;
         }
 
-        /* Премиальная карта */
-        .bank-card {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            color: #ffffff;
-            border-radius: 20px;
-            padding: 24px;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.3);
-            margin-bottom: 20px;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .bank-card::before {
-            content: "";
-            position: absolute;
-            top: -50px;
-            right: -50px;
-            width: 150px;
-            height: 150px;
-            background: rgba(37, 99, 235, 0.2);
-            border-radius: 50%;
-            z-index: 1;
-        }
-
-        .card-header, .card-body, .card-stats {
-            position: relative;
-            z-index: 2;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        h2 {
+            text-align: center;
             margin-bottom: 20px;
         }
 
-        .card-brand {
-            font-size: 16px;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #38bdf8;
-        }
-
-        .card-chip {
-            width: 40px;
-            height: 30px;
-            background: linear-gradient(135deg, #fef08a 0%, #ca8a04 100%);
-            border-radius: 6px;
-        }
-
-        .card-phone {
-            font-size: 14px;
-            color: #94a3b8;
-            margin-bottom: 4px;
-        }
-
-        .card-holder {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-
-        .card-stats {
+        /* Главное меню (4 плитки) */
+        .menu-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.07);
-            padding: 12px;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .menu-card {
+            background-color: var(--card-bg);
             border-radius: 12px;
-            backdrop-filter: blur(5px);
+            padding: 20px 12px;
             text-align: center;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.1s ease;
         }
 
-        .stat-item span {
-            display: block;
+        .menu-card:active {
+            transform: scale(0.96);
         }
 
-        .stat-label {
-            font-size: 10px;
-            color: #94a3b8;
-            text-transform: uppercase;
-        }
-
-        .stat-val {
-            font-size: 14px;
-            font-weight: 700;
-            color: #ffffff;
-            margin-top: 2px;
-        }
-
-        /* Баннер скидки */
-        .discount-banner {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            color: white;
-            border-radius: 14px;
-            padding: 16px;
-            text-align: center;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
-        }
-
-        .discount-banner .d-title {
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            opacity: 0.9;
-        }
-
-        .discount-banner .d-value {
+        .menu-card .icon {
             font-size: 28px;
-            font-weight: 800;
-            margin-top: 4px;
+            margin-bottom: 8px;
         }
 
-        .card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            margin-bottom: 16px;
-        }
-
-        .title {
-            font-size: 17px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .subtitle {
-            font-size: 13px;
-            color: var(--hint-color);
-            margin-bottom: 16px;
-        }
-
-        .form-group {
-            margin-bottom: 12px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            color: var(--hint-color);
-            margin-bottom: 4px;
-            text-transform: uppercase;
+        .menu-card .title {
+            font-size: 14px;
             font-weight: 600;
         }
 
-        .form-input, .form-control {
-            width: 100%;
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(0,0,0,0.15);
-            background: var(--bg-color);
-            color: var(--text-color);
+        /* Экраны / Секции */
+        .section {
+            display: none;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--button-color);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Стили карточки лояльности */
+        .loyalty-info-item, .garage-item {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.15);
             font-size: 15px;
+        }
+
+        .loyalty-info-item:last-child, .garage-item:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-weight: bold;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: var(--button-color);
+        }
+
+        /* Формы и кнопки */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: var(--hint-color);
+            margin-bottom: 4px;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--hint-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
             box-sizing: border-box;
+            font-size: 15px;
+        }
+
+        textarea {
+            resize: vertical;
+            height: 80px;
         }
 
         .btn {
             background-color: var(--button-color);
-            color: var(--button-text);
+            color: var(--button-text-color);
             border: none;
-            border-radius: 12px;
-            padding: 12px 16px;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
             font-size: 16px;
             font-weight: 600;
-            width: 100%;
             cursor: pointer;
-            text-align: center;
-            display: block;
-            margin-top: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--button-color);
+            border: 1px solid var(--button-color);
+            margin-top: 8px;
+        }
+
+        .car-select-btn {
+            background-color: var(--bg-color);
+            border: 1px solid var(--hint-color);
+            color: var(--text-color);
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .car-select-btn:hover {
+            border-color: var(--button-color);
+        }
+
+        /* Загрузка фото */
+        .photo-input-container {
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <!-- Карта лояльности с кэшбэками -->
-        <div class="bank-card">
-            <div class="card-header">
-                <div class="card-brand">🚗 АКМ Авто</div>
-                <div class="card-chip"></div>
-            </div>
-            <div class="card-body">
-                <div class="card-phone" id="user-phone">Загрузка...</div>
-                <div class="card-holder">Виртуальная карта клиента</div>
-            </div>
-            <div class="card-stats">
-                <div class="stat-item">
-                    <span class="stat-label">Оборот</span>
-                    <span class="stat-val" id="turnover">0 ₽</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Личный Кэш</span>
-                    <span class="stat-val" id="personal-cashback" style="color: #4ade80;">1%</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">С друзей</span>
-                    <span class="stat-val" id="ref-rate" style="color: #38bdf8;">0%</span>
-                </div>
-            </div>
+<div class="container">
+    <h2>АКМ Авто</h2>
+
+    <!-- Главные плитки бота -->
+    <div id="main-menu" class="menu-grid">
+        <div class="menu-card" onclick="showSection('section-loyalty')">
+            <div class="icon">💳</div>
+            <div class="title">Карта лояльности</div>
         </div>
-
-        <!-- Скидка отдельно -->
-        <div class="discount-banner">
-            <div class="d-title">Ваша персональная скидка на ремонт</div>
-            <div class="d-value" id="discount">0%</div>
+        <div class="menu-card" onclick="showSection('section-repair')">
+            <div class="icon">📅</div>
+            <div class="title">Записаться на ремонт</div>
         </div>
-
-        <!-- Анкеты автомобиля и выбор для записи -->
-        <div class="card">
-            <div class="title">🚙 Данные вашего автомобиля</div>
-            <div class="subtitle">Сохраните данные один раз для автоподстановки при записи</div>
-            
-            <!-- Блок быстрого выбора авто, если оно уже сохранено -->
-            <div class="form-group" id="saved-car-section" style="display: none;">
-                <label>Выбрать из сохраненных:</label>
-                <select id="car-select" class="form-control" onchange="fillCarDataFromSelect()">
-                    <option value="">-- Введите данные ниже --</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Марка</label>
-                <input type="text" id="car-brand" class="form-input" placeholder="Например: Toyota">
-            </div>
-            <div class="form-group">
-                <label>Модель</label>
-                <input type="text" id="car-model" class="form-input" placeholder="Например: Camry">
-            </div>
-            <div class="form-group">
-                <label>VIN-номер</label>
-                <input type="text" id="car-vin" class="form-input" placeholder="17 знаков VIN">
-            </div>
-            <div class="form-group">
-                <label>Гос. номер</label>
-                <input type="text" id="car-plate" class="form-input" placeholder="А000АА799">
-            </div>
-            <button class="btn" onclick="saveCarData()">💾 Сохранить данные</button>
+        <div class="menu-card" onclick="showSection('section-photo')">
+            <div class="icon">📸</div>
+            <div class="title">Оценить по фото</div>
         </div>
-
-        <!-- Реферальная секция -->
-        <div class="card">
-            <div class="title">🎁 Реферальный бонус</div>
-            <div class="subtitle">Приглашайте друзей: друг получает 750 ₽, а вы — 10% с его первого визита + пассивный % с последующих!</div>
-            
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px;">
-                <span>Бонусный баланс:</span>
-                <span style="font-weight: 700; color: #2563eb;" id="bonus-balance">0 ₽</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 15px;">
-                <span>Приглашено друзей:</span>
-                <span style="font-weight: 700;" id="ref-count">0 чел.</span>
-            </div>
-
-            <button class="btn" onclick="shareRefLink()">📤 Поделиться ссылкой</button>
+        <div class="menu-card" onclick="showSection('section-contacts')">
+            <div class="icon">📞</div>
+            <div class="title">Контакты</div>
         </div>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+    <!-- 1. КАРТА ЛОЯЛЬНОСТИ -->
+    <div id="section-loyalty" class="section">
+        <button class="back-btn" onclick="showSection('main-menu')">◀️ Назад в меню</button>
+        <h3>💳 Карточка лояльности</h3>
+        
+        <div class="section-title">Информация по карте:</div>
+        <div class="loyalty-info-item">1️⃣ Кол-во баллов: <strong id="val-balance">0</strong></div>
+        <div class="loyalty-info-item">2️⃣ Скидка: <strong id="val-discount">0%</strong></div>
+        <div class="loyalty-info-item">3️⃣ Процент кэшбэка: <strong id="val-cashback">1%</strong></div>
 
-        const userId = tg.initDataUnsafe?.user?.id;
-        if (!userId) {
-            document.getElementById('user-phone').innerText = 'Ошибка: откройте через бота';
-            throw new Error('No user ID');
-        }
+        <div class="section-title">🚘 Гараж автомобилей:</div>
+        <div id="garage-list">
+            <!-- Список машин подгрузится динамически -->
+        </div>
+        <button class="btn btn-secondary" onclick="openAddCarModal()">➕ Добавить автомобиль</button>
 
-        let userGlobalData = null;
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid rgba(128,128,128,0.2);">
 
-        // Загрузка данных пользователя с сервера
-        fetch(`https://botakmakm.onrender.com/api/user_data?user_id=${userId}`)
-            .then(res => res.json())
-            .then(data => {
-                userGlobalData = data;
-                document.getElementById('user-phone').innerText = `Тел: ${data.phone || 'Не указан'}`;
-                document.getElementById('turnover').innerText = `${(data.turnover || 0).toLocaleString()} ₽`;
-                document.getElementById('discount').innerText = `${data.discount || 0}%`;
-                document.getElementById('personal-cashback').innerText = `${data.personal_cashback || 1}%`;
-                document.getElementById('ref-rate').innerText = `${data.referral_passive_rate || 0}%`;
-                document.getElementById('ref-count').innerText = `${data.ref_count || 0} чел.`;
-                document.getElementById('bonus-balance').innerText = `${(data.bonus_balance || 0).toLocaleString()} ₽`;
+        <div class="section-title">🎁 Реферальная программа:</div>
+        <div class="loyalty-info-item">1️⃣ Количество рефералов: <strong id="val-ref-count">0 чел.</strong></div>
+        <div class="loyalty-info-item">2️⃣ Процент кэшбэка от затрат рефералов: <strong id="val-ref-rate">0%</strong></div>
+        <div style="margin-top: 10px; font-size: 13px; color: var(--hint-color);">Ваша реферальная ссылка:</div>
+        <input type="text" id="ref-link-input" readonly style="margin-top: 4px; font-size: 12px;" onclick="this.select()">
+    </div>
 
-                // Обработка машин (поддержка и одиночного объекта, и массива)
-                let carsList = [];
-                if (data.cars && Array.isArray(data.cars)) {
-                    carsList = data.cars;
-                } else if (data.car) {
-                    carsList = [data.car];
-                }
+    <!-- ДОБАВЛЕНИЕ АВТОМОБИЛЯ ИЗ КАРТОЧКИ -->
+    <div id="section-add-car" class="section">
+        <button class="back-btn" onclick="showSection('section-loyalty')">◀️ Назад к карте</button>
+        <h3>➕ Добавить автомобиль</h3>
+        <div class="form-group">
+            <label>Номер машины</label>
+            <input type="text" id="new-car-plate" placeholder="Например: А123ВС78">
+        </div>
+        <div class="form-group">
+            <label>VIN номер</label>
+            <input type="text" id="new-car-vin" placeholder="17 символов">
+        </div>
+        <div class="form-group">
+            <label>Марка и модель</label>
+            <input type="text" id="new-car-brand" placeholder="Например: BMW X5">
+        </div>
+        <button class="btn" onclick="saveNewCar()">Сохранить в базу</button>
+    </div>
 
-                if (carsList.length > 0) {
-                    window.userCars = carsList;
-                    const selectSection = document.getElementById('saved-car-section');
-                    const carSelect = document.getElementById('car-select');
-                    
-                    if (selectSection && carSelect) {
-                        selectSection.style.display = 'block';
-                        carsList.forEach((car, index) => {
-                            const opt = document.createElement('option');
-                            opt.value = index;
-                            opt.textContent = `${car.brand || ''} ${car.model || ''} (${car.plate || car.vin || 'Без номера'})`;
-                            carSelect.appendChild(opt);
-                        });
-                    }
+    <!-- 2. ЗАПИСАТЬСЯ НА РЕМОНТ -->
+    <div id="section-repair" class="section">
+        <button class="back-btn" onclick="showSection('main-menu')">◀️ Назад в меню</button>
+        <h3>📅 Записаться на ремонт</h3>
+        <div id="repair-step-1">
+            <p>Выберите вариант:</p>
+            <button class="btn btn-secondary" onclick="startRepair('new')">а. Новая машина</button>
+            <button class="btn btn-secondary" onclick="startRepair('garage')" id="repair-garage-btn">б. Выбрать машину из гаража</button>
+        </div>
+        <div id="repair-step-form" style="display: none; margin-top: 15px;">
+            <div id="repair-car-inputs">
+                <div class="form-group">
+                    <label>Номер машины</label>
+                    <input type="text" id="rep-plate">
+                </div>
+                <div class="form-group">
+                    <label>VIN номер</label>
+                    <input type="text" id="rep-vin">
+                </div>
+                <div class="form-group">
+                    <label>Марка и модель</label>
+                    <input type="text" id="rep-brand">
+                </div>
+            </div>
+            <div id="repair-garage-selection" style="display: none;">
+                <label>Выберите автомобиль из гаража:</label>
+                <div id="repair-garage-list"></div>
+            </div>
+            <div class="form-group" style="margin-top: 10px;">
+                <label>Причина обращения</label>
+                <textarea id="rep-reason" placeholder="Опишите неисправность..."></textarea>
+            </div>
+            <button class="btn" onclick="submitRepair()">Отправить заявку</button>
+        </div>
+    </div>
 
-                    // Автозаполнение полей первым авто по умолчанию
-                    document.getElementById('car-brand').value = carsList[0].brand || '';
-                    document.getElementById('car-model').value = carsList[0].model || '';
-                    document.getElementById('car-vin').value = carsList[0].vin || '';
-                    document.getElementById('car-plate').value = carsList[0].plate || '';
-                }
-            })
-            .catch(err => {
-                console.error('Ошибка загрузки данных:', err);
+    <!-- 3. ОЦЕНИТЬ ПО ФОТО -->
+    <div id="section-photo" class="section">
+        <button class="back-btn" onclick="showSection('main-menu')">◀️ Назад в меню</button>
+        <h3>📸 Оценить по фото</h3>
+        <div id="photo-step-1">
+            <p>Выберите вариант:</p>
+            <button class="btn btn-secondary" onclick="startPhoto('new')">а. Новая машина</button>
+            <button class="btn btn-secondary" onclick="startPhoto('garage')" id="photo-garage-btn">б. Выбрать машину из гаража</button>
+        </div>
+        <div id="photo-step-form" style="display: none; margin-top: 15px;">
+            <div id="photo-car-inputs">
+                <div class="form-group">
+                    <label>Номер машины</label>
+                    <input type="text" id="ph-plate">
+                </div>
+                <div class="form-group">
+                    <label>VIN номер</label>
+                    <input type="text" id="ph-vin">
+                </div>
+                <div class="form-group">
+                    <label>Марка и модель</label>
+                    <input type="text" id="ph-brand">
+                </div>
+            </div>
+            <div id="photo-garage-selection" style="display: none;">
+                <label>Выберите автомобиль из гаража:</label>
+                <div id="photo-garage-list"></div>
+            </div>
+            <div class="form-group" style="margin-top: 10px;">
+                <label>Прикрепите фотографии (можно несколько)</label>
+                <input type="file" id="ph-files" multiple accept="image/*" style="margin-bottom: 10px;">
+            </div>
+            <button class="btn" onclick="submitPhoto()">Отправить фотографии</button>
+        </div>
+    </div>
+
+    <!-- 4. КОНТАКТНАЯ ИНФОРМАЦИЯ -->
+    <div id="section-contacts" class="section">
+        <button class="back-btn" onclick="showSection('main-menu')">◀️ Назад в меню</button>
+        <h3>📞 Контактная информация</h3>
+        <div class="loyalty-info-item">📱 Телефон: <strong>+7 (921) 950-01-10</strong></div>
+        <div class="loyalty-info-item">📍 Адрес: <strong>Рубежная ул., 2Л</strong></div>
+        <div class="loyalty-info-item">⏰ График работы: <strong>с 10:00 до 20:00</strong></div>
+    </div>
+</div>
+
+<script>
+    let tg = window.Telegram.WebApp;
+    tg.expand();
+
+    // Мок данных пользователя (в реальном приложении подтягивается из бэкенда/Telegram ID)
+    let userData = {
+        id: tg.initDataUnsafe?.user?.id || "123456789",
+        balance: 750,
+        turnover: 0,
+        activeRefs: 0,
+        cars: [
+            { brand: "BMW X5", plate: "А123ВС78", vin: "WBA1234567890" }
+        ]
+    };
+
+    function calculateDiscount(turnover) {
+        if (turnover >= 1000000) return 20;
+        if (turnover >= 600000) return 15;
+        if (turnover >= 250000) return 10;
+        if (turnover >= 100000) return 5;
+        return 0;
+    }
+
+    function getCashbackRate(turnover) {
+        if (turnover >= 1000000) return 7;
+        if (turnover >= 500000) return 5;
+        if (turnover >= 300000) return 4;
+        if (turnover >= 200000) return 3;
+        if (turnover >= 100000) return 2;
+        return 1;
+    }
+
+    function getRefRate(refs) {
+        if (refs >= 10) return 5;
+        if (refs >= 5) return 3;
+        if (refs >= 3) return 2;
+        if (refs >= 1) return 1;
+        return 0;
+    }
+
+    function updateLoyaltyUI() {
+        document.getElementById('val-balance').innerText = userData.balance.toLocaleString('ru-RU');
+        document.getElementById('val-discount').innerText = calculateDiscount(userData.turnover) + '%';
+        document.getElementById('val-cashback').innerText = getCashbackRate(userData.turnover) + '%';
+        
+        document.getElementById('val-ref-count').innerText = userData.activeRefs + ' чел.';
+        document.getElementById('val-ref-rate').innerText = getRefRate(userData.activeRefs) + '%';
+        document.getElementById('ref-link-input').value = `https://t.me/akmautospb_bot?start=${userData.id}`;
+
+        let garageHtml = '';
+        if (userData.cars.length === 0) {
+            garageHtml = '<div style="color: var(--hint-color); font-size: 14px; padding: 6px 0;">Гараж пуст. Добавьте автомобиль.</div>';
+        } else {
+            userData.cars.forEach((car, index) => {
+                garageHtml += `<div class="garage-item">🚗 Авто ${index+1}: <strong>${car.brand}</strong><br><small>Гос. номер: ${car.plate} | VIN: ${car.vin}</small></div>`;
             });
+        }
+        document.getElementById('garage-list').innerHTML = garageHtml;
+    }
 
-        // Функция подстановки данных при выборе из выпадающего списка
-        function fillCarDataFromSelect() {
-            const index = document.getElementById('car-select').value;
-            if (index === "" || !window.userCars) return;
+    function showSection(sectionId) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('main-menu').style.display = 'none';
 
-            const car = window.userCars[index];
-            document.getElementById('car-brand').value = car.brand || '';
-            document.getElementById('car-model').value = car.model || '';
-            document.getElementById('car-vin').value = car.vin || '';
-            document.getElementById('car-plate').value = car.plate || '';
+        if (sectionId === 'main-menu') {
+            document.getElementById('main-menu').style.display = 'grid';
+        } else {
+            document.getElementById(sectionId).classList.add('active');
+            if (sectionId === 'section-loyalty') {
+                updateLoyaltyUI();
+            }
+        }
+    }
+
+    function openAddCarModal() {
+        document.getElementById('new-car-plate').value = '';
+        document.getElementById('new-car-vin').value = '';
+        document.getElementById('new-car-brand').value = '';
+        showSection('section-add-car');
+    }
+
+    function saveNewCar() {
+        let plate = document.getElementById('new-car-plate').value.trim();
+        let vin = document.getElementById('new-car-vin').value.trim();
+        let brand = document.getElementById('new-car-brand').value.trim();
+
+        if (!plate || !vin || !brand) {
+            alert('Пожалуйста, заполните все поля автомобиля!');
+            return;
         }
 
-        function saveCarData() {
-            const carData = {
-                brand: document.getElementById('car-brand').value,
-                model: document.getElementById('car-model').value,
-                vin: document.getElementById('car-vin').value,
-                plate: document.getElementById('car-plate').value
-            };
+        userData.cars.push({ brand, plate, vin });
+        alert('✅ Автомобиль успешно добавлен в базу!');
+        showSection('section-loyalty');
+    }
 
-            fetch(`https://botakmakm.onrender.com/api/save_car?user_id=${userId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(carData)
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    alert('✅ Данные автомобиля сохранены!');
-                } else {
-                    alert('❌ Ошибка сохранения');
-                }
-            })
-            .catch(err => {
-                alert('❌ Ошибка сети при сохранении');
+    // --- Логика ремонта ---
+    let repairMode = 'new';
+    let selectedRepairCar = null;
+
+    function startRepair(mode) {
+        repairMode = mode;
+        document.getElementById('repair-step-1').style.display = 'none';
+        document.getElementById('repair-step-form').style.display = 'block';
+
+        if (mode === 'new') {
+            document.getElementById('repair-car-inputs').style.display = 'block';
+            document.getElementById('repair-garage-selection').style.display = 'none';
+        } else {
+            document.getElementById('repair-car-inputs').style.display = 'none';
+            document.getElementById('repair-garage-selection').style.display = 'block';
+            
+            let listHtml = '';
+            userData.cars.forEach((car, idx) => {
+                listHtml += `<button type="button" class="car-select-btn" onclick="selectRepairCar(${idx})">🚗 ${car.brand} (${car.plate})</button>`;
             });
+            document.getElementById('repair-garage-list').innerHTML = listHtml;
+        }
+    }
+
+    function selectRepairCar(idx) {
+        selectedRepairCar = userData.cars[idx];
+        alert(`Выбран автомобиль: ${selectedRepairCar.brand} (${selectedRepairCar.plate})`);
+    }
+
+    function submitRepair() {
+        let reason = document.getElementById('rep-reason').value.trim();
+        if (!reason) {
+            alert('Укажите причину обращения!');
+            return;
         }
 
-        function shareRefLink() {
-            const botUsername = "akmautospb_bot";
-            const refLink = `https://t.me/${botUsername}?start=${userId}`;
-            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent('Заезжай в АКМ Авто! Отличный сервис, накопительные скидки и кэшбэк.')}`;
-            tg.openTelegramLink(shareUrl);
+        let carInfo = '';
+        if (repairMode === 'new') {
+            let plate = document.getElementById('rep-plate').value;
+            let vin = document.getElementById('rep-vin').value;
+            let brand = document.getElementById('rep-brand').value;
+            if (!plate || !vin || !brand) {
+                alert('Заполните данные машины!');
+                return;
+            }
+            carInfo = `Марка/модель: ${brand}, Номер: ${plate}, VIN: ${vin}`;
+            userData.cars.push({ brand, plate, vin });
+        } else {
+            if (!selectedRepairCar) {
+                alert('Выберите машину из гаража!');
+                return;
+            }
+            carInfo = `Марка/модель: ${selectedRepairCar.brand}, Номер: ${selectedRepairCar.plate}, VIN: ${selectedRepairCar.vin}`;
         }
-    </script>
+
+        let dataToSend = {
+            action: "repair",
+            user_id: userData.id,
+            car: carInfo,
+            reason: reason
+        };
+
+        tg.sendData(JSON.stringify(dataToSend));
+        tg.close();
+    }
+
+    // --- Логика оценки по фото ---
+    let photoMode = 'new';
+    let selectedPhotoCar = null;
+
+    function startPhoto(mode) {
+        photoMode = mode;
+        document.getElementById('photo-step-1').style.display = 'none';
+        document.getElementById('photo-step-form').style.display = 'block';
+
+        if (mode === 'new') {
+            document.getElementById('photo-car-inputs').style.display = 'block';
+            document.getElementById('photo-garage-selection').style.display = 'none';
+        } else {
+            document.getElementById('photo-car-inputs').style.display = 'none';
+            document.getElementById('photo-garage-selection').style.display = 'block';
+            
+            let listHtml = '';
+            userData.cars.forEach((car, idx) => {
+                listHtml += `<button type="button" class="car-select-btn" onclick="selectPhotoCar(${idx})">🚗 ${car.brand} (${car.plate})</button>`;
+            });
+            document.getElementById('photo-garage-list').innerHTML = listHtml;
+        }
+    }
+
+    function selectPhotoCar(idx) {
+        selectedPhotoCar = userData.cars[idx];
+        alert(`Выбран автомобиль: ${selectedPhotoCar.brand} (${selectedPhotoCar.plate})`);
+    }
+
+    function submitPhoto() {
+        let filesInput = document.getElementById('ph-files');
+        if (filesInput.files.length === 0) {
+            alert('Прикрепите хотя бы одну фотографию!');
+            return;
+        }
+
+        let carInfo = '';
+        if (photoMode === 'new') {
+            let plate = document.getElementById('ph-plate').value;
+            let vin = document.getElementById('ph-vin').value;
+            let brand = document.getElementById('ph-brand').value;
+            if (!plate || !vin || !brand) {
+                alert('Заполните данные машины!');
+                return;
+            }
+            carInfo = `Марка/модель: ${brand}, Номер: ${plate}, VIN: ${vin}`;
+            userData.cars.push({ brand, plate, vin });
+        } else {
+            if (!selectedPhotoCar) {
+                alert('Выберите машину из гаража!');
+                return;
+            }
+            carInfo = `Марка/модель: ${selectedPhotoCar.brand}, Номер: ${selectedPhotoCar.plate}, VIN: ${selectedPhotoCar.vin}`;
+        }
+
+        alert('Заявка на оценку формируется. В реальном веб-приложении фотографии отправляются в чат менеджеров.');
+        tg.close();
+    }
+
+    // Инициализация при загрузке
+    updateLoyaltyUI();
+</script>
+
 </body>
 </html>

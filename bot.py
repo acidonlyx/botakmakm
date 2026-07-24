@@ -11,9 +11,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-TOKEN = "8924615859:AAFBt-yx9fFQmPM7JZ8k6Dp4jPrCQmlThXo"
+TOKEN = "8924615859:AAE0LqHClZasq1Zii768_N9DWFlVvgynmyI"
 ADMIN_IDS = [8633592767]
-MANAGER_CHAT_ID = 8633592767  # Чат/админ, куда летят заявки на ремонт и фото
+MANAGER_CHAT_ID = -1004301495465  # Чат/админ, куда летят заявки на ремонт и фото
 
 DB_FILE = "cards_db.json"
 

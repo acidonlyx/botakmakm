@@ -7,16 +7,17 @@ from aiogram.filters import Command
 from aiogram.types import (
     Message, CallbackQuery, InlineKeyboardButton, 
     ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InputMediaPhoto,
-    WebAppData
+    WebAppInfo
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.state import State, StatesGroup
 
 TOKEN = "8924615859:AAE0LqHClZasq1Zii768_N9DWFlVvgynmyI"
 ADMIN_IDS = [8633592767]
-MANAGER_CHAT_ID = 8633592767  # Чат/админ, куда летят заявки на ремонт и фото
+MANAGER_CHAT_ID = 8633592767  # Чат или ID менеджера для заявок и фото
 
-WEB_APP_URL = "https://botakmakm.onrender.com/index.html"
+# URL вашего развернутого Mini App на Render
+WEB_APP_URL = "https://botakmakm.onrender.com/index.html" 
 
 DB_FILE = "cards_db.json"
 
@@ -78,23 +79,18 @@ def calculate_discount(turnover):
     else:
         return 0
 
-# FSM Состояния для бота
+# FSM Состояния
 class AppointmentStates(StatesGroup):
     entering_plate = State()
-    entering_vin = State()
-    entering_brand_model = State()
     entering_reason = State()
-
-class PhotoEstimateStates(StatesGroup):
-    entering_plate = State()
-    entering_vin = State()
-    entering_brand_model = State()
-    uploading_photos = State()
 
 class AddCarStates(StatesGroup):
     plate = State()
     vin = State()
     brand_model = State()
+
+class PhotoEstimateStates(StatesGroup):
+    waiting_for_photo = State()
 
 
 bot = Bot(token=TOKEN)
@@ -103,17 +99,12 @@ router = Router()
 
 def get_main_keyboard():
     builder = InlineKeyboardBuilder()
-    # Кнопка открытия Mini App (Личный кабинет с плитками)
-    builder.row(InlineKeyboardButton(text="📱 Личный кабинет (App)", web_app=web_app_url_obj()))
+    builder.row(InlineKeyboardButton(text="📱 Личный кабинет (App)", web_app=WebAppInfo(url=WEB_APP_URL)))
     builder.row(InlineKeyboardButton(text="💳 Карта лояльности", callback_data="loyalty_card"))
     builder.row(InlineKeyboardButton(text="📅 Записаться на ремонт", callback_data="book_repair"))
     builder.row(InlineKeyboardButton(text="📸 Оценить по фото", callback_data="photo_estimate"))
     builder.row(InlineKeyboardButton(text="📞 Контактная информация", callback_data="contact_info"))
     return builder.as_markup()
-
-def web_app_url_obj():
-    from aiogram.types import WebAppInfo
-    return WebAppInfo(url=WEB_APP_URL)
 
 @router.message(Command("start"))
 async def cmd_start(message: Message, state):
@@ -140,9 +131,7 @@ async def cmd_start(message: Message, state):
     user_data = db.get(user_id, {})
     if not user_data.get("phone") or user_data.get("phone") == "Не указан":
         keyboard = ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)]
-            ],
+            keyboard=[[KeyboardButton(text="📱 Поделиться номером телефона", request_contact=True)]],
             resize_keyboard=True,
             one_time_keyboard=True
         )
@@ -154,8 +143,7 @@ async def cmd_start(message: Message, state):
         )
     else:
         await message.answer(
-            "👋 Рады снова видеть вас в **АКМ Авто**!\n\n"
-            "Выберите интересующий вас раздел:",
+            "👋 Рады снова видеть вас в **АКМ Авто**!\n\nВыберите интересующий вас раздел:",
             reply_markup=get_main_keyboard(),
             parse_mode="Markdown"
         )
@@ -168,27 +156,16 @@ async def handle_contact(message: Message):
     db = load_db()
     if user_id not in db:
         db[user_id] = {
-            "phone": phone,
-            "turnover": 0.0,
-            "bonus_balance": 750.0,
-            "active_refs": 0,
-            "invited_by": None,
-            "first_visit_done": False,
-            "cars": []
+            "phone": phone, "turnover": 0.0, "bonus_balance": 750.0,
+            "active_refs": 0, "invited_by": None, "first_visit_done": False, "cars": []
         }
     else:
         db[user_id]["phone"] = phone
         
     save_db(db)
-    
-    await message.answer(
-        "✅ Телефон успешно сохранен! Ваша карта лояльности активна.",
-        reply_markup=ReplyKeyboardRemove()
-    )
+    await message.answer("✅ Телефон успешно сохранен! Ваша карта лояльности активна.", reply_markup=ReplyKeyboardRemove())
     await message.answer("Главное меню:", reply_markup=get_main_keyboard())
 
-
-# Обработка данных, прилетающих из Mini App через tg.sendData()
 @router.message(F.web_app_data)
 async def handle_web_app_data(message: Message):
     try:
@@ -211,13 +188,10 @@ async def handle_web_app_data(message: Message):
             )
             await bot.send_message(MANAGER_CHAT_ID, text, parse_mode="Markdown")
             await message.answer("✅ Ваша заявка на ремонт успешно отправлена менеджерам!", reply_markup=get_main_keyboard())
-            
     except Exception as e:
         logging.error(f"Ошибка обработки WebApp данных: {e}")
         await message.answer("❌ Произошла ошибка при отправке данных.", reply_markup=get_main_keyboard())
 
-
-# === КОНТАКТЫ ===
 @router.callback_query(F.data == "contact_info")
 async def contact_info_callback(callback: CallbackQuery):
     text = (
@@ -231,8 +205,6 @@ async def contact_info_callback(callback: CallbackQuery):
     await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=builder.as_markup())
     await callback.answer()
 
-
-# === КАРТА ЛОЯЛЬНОСТИ (Дублирующий текстовый интерфейс) ===
 @router.callback_query(F.data == "loyalty_card")
 async def loyalty_card_callback(callback: CallbackQuery):
     user_id = str(callback.from_user.id)
@@ -256,15 +228,10 @@ async def loyalty_card_callback(callback: CallbackQuery):
 
     text = (
         "💳 **Карта лояльности АКМ Авто**\n\n"
-        "📊 **Информация по карте:**\n"
-        f"1️⃣ Кол-во баллов: **{balance:,.0f}**\n"
-        f"2️⃣ Скидка: **{discount}%**\n"
-        f"3️⃣ Процент кэшбэка: **{cashback_rate}%**\n\n"
-        f"🚘 **Гараж автомобилей:**{cars_text}\n\n"
-        "-------------------------------------\n"
-        "🎁 **Реферальная программа:**\n"
-        f"1️⃣ Количество рефералов: **{ref_count} чел.**\n"
-        f"2️⃣ Процент кэшбэка от затрат рефералов: **{ref_rate}%**\n\n"
+        f"📊 Баланс баллов: **{balance:,.0f}**\n"
+        f"🎁 Скидка: **{discount}%** | Кэшбэк: **{cashback_rate}%**\n"
+        f"👥 Рефералы: **{ref_count} чел.** (Доход с друзей: {ref_rate}%)\n\n"
+        f"🚘 **Гараж:**{cars_text}\n\n"
         f"🔗 Ваша реферальная ссылка:\n`{ref_link}`"
     )
     
@@ -310,19 +277,16 @@ async def add_car_finish(message: Message, state):
     if "cars" not in db[user_id]:
         db[user_id]["cars"] = []
         
-    new_car = {
+    db[user_id]["cars"].append({
         "plate": data.get("plate"),
         "vin": data.get("vin"),
         "brand": message.text
-    }
-    db[user_id]["cars"].append(new_car)
+    })
     save_db(db)
     
     await state.clear()
     await message.answer("✅ Автомобиль успешно добавлен в ваш гараж!", reply_markup=get_main_keyboard())
 
-
-# === ЗАПИСЬ НА РЕМОНТ И ОЦЕНКА ПО ФОТО ===
 @router.callback_query(F.data == "book_repair")
 async def book_repair_start(callback: CallbackQuery, state):
     await state.set_state(AppointmentStates.entering_plate)
@@ -340,8 +304,7 @@ async def repair_reason(message: Message, state):
     data = await state.get_data()
     user_id = str(message.from_user.id)
     db = load_db()
-    user = db.get(user_id, {})
-    phone = user.get("phone", "Не указан")
+    phone = db.get(user_id, {}).get("phone", "Не указан")
     
     text = (
         "📅 **Новая заявка на ремонт с бота**\n\n"
@@ -353,67 +316,64 @@ async def repair_reason(message: Message, state):
     try:
         await bot.send_message(MANAGER_CHAT_ID, text, parse_mode="Markdown")
     except Exception as e:
-        logging.error(f"Не удалось отправить заявку менеджеру: {e}")
+        logging.error(f"Не удалось отправить заявку: {e}")
         
     await state.clear()
     await message.answer("✅ Ваша заявка успешно отправлена менеджерам! Скоро с вами свяжутся.", reply_markup=get_main_keyboard())
 
 @router.callback_query(F.data == "photo_estimate")
-async def photo_est_start(callback: CallbackQuery, state):
-    await state.set_state(PhotoEstimateStates.uploading_photos)
-    await state.update_data(photos=[])
-    
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="✅ Готово (отправить)")]],
-        resize_keyboard=True
-    )
-    await callback.message.answer(
-        "📸 **Оценка стоимости ремонта по фото**\n\n"
-        "Пожалуйста, отправьте одно или несколько фото повреждений. Когда закончите, нажмите кнопку «✅ Готово (отправить)» внизу.",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
+async def photo_estimate_start(callback: CallbackQuery, state):
+    await state.set_state(PhotoEstimateStates.waiting_for_photo)
+    await callback.message.answer("📸 Пожалуйста, отправьте фото повреждения или детали автомобиля для предварительной оценки:")
     await callback.answer()
 
-@router.message(PhotoEstimateStates.uploading_photos, F.photo)
-async def get_ph(message: Message, state):
-    data = await state.get_data()
-    data["photos"].append(message.photo[-1].file_id)
-    await state.update_data(photos=data["photos"])
-    await message.answer(f"📸 Фото принято ({len(data['photos'])} шт.). Отправьте еще или нажмите «✅ Готово (отправить)».")
-
-@router.message(PhotoEstimateStates.uploading_photos, F.text == "✅ Готово (отправить)")
-async def finish_ph(message: Message, state):
-    data = await state.get_data()
-    photos = data.get("photos", [])
-    if not photos:
-        await message.answer("Вы не прикрепили ни одной фотографии!")
-        return
-    
+@router.message(PhotoEstimateStates.waiting_for_photo, F.photo)
+async def photo_received(message: Message, state):
     user_id = str(message.from_user.id)
     db = load_db()
     phone = db.get(user_id, {}).get("phone", "Не указан")
-    
-    caption = f"📸 **Заявка на оценку по фото**\n👤 ID клиента: `{user_id}`\n📞 Телефон: {phone}"
-    
+    photo_file_id = message.photo[-1].file_id
+
+    caption = (
+        "📸 **Заявка на оценку по фото**\n\n"
+        f"👤 Клиент ID: `{user_id}`\n"
+        f"📞 Телефон: {phone}"
+    )
     try:
-        if len(photos) == 1:
-            await bot.send_photo(MANAGER_CHAT_ID, photo=photos[0], caption=caption, parse_mode="Markdown")
-        else:
-            media = [InputMediaPhoto(media=photos[0], caption=caption, parse_mode="Markdown")]
-            for p in photos[1:]:
-                media.append(InputMediaPhoto(media=p))
-            await bot.send_media_group(MANAGER_CHAT_ID, media)
+        await bot.send_photo(MANAGER_CHAT_ID, photo=photo_file_id, caption=caption, parse_mode="Markdown")
     except Exception as e:
-        logging.error(f"Ошибка отправки медиагруппы менеджеру: {e}")
+        logging.error(f"Ошибка пересылки фото менеджеру: {e}")
 
     await state.clear()
-    await message.answer("✅ Ваши фотографии отправлены в кузовной цех! Оценщик свяжется с вами в ближайшее время.", reply_markup=get_main_keyboard())
+    await message.answer("✅ Фото успешно отправлено мастерам! Ожидайте расчет стоимости.", reply_markup=get_main_keyboard())
+
+@router.message(PhotoEstimateStates.waiting_for_photo)
+async def photo_incorrect(message: Message):
+    await message.answer("⚠️ Пожалуйста, отправьте именно **фотографию** (изображение).")
 
 
 # ==========================================
-# === WEB API ДЛЯ ADMIN.HTML (AIOHTTP) ===
+# === WEB API ДЛЯ MINI APP И ADMIN.HTML ===
 # ==========================================
+
+async def api_get_user_data(request):
+    user_id = request.query.get("user_id")
+    db = load_db()
+    user = db.get(str(user_id), {
+        "bonus_balance": 0, "turnover": 0, "active_refs": 0, "cars": []
+    })
+    
+    cashback_rate, _, _ = get_personal_cashback_rate(user.get("turnover", 0))
+    discount = calculate_discount(user.get("turnover", 0))
+    
+    return web.json_response({
+        "success": True,
+        "balance": user.get("bonus_balance", 0),
+        "discount": discount,
+        "cashback_rate": cashback_rate,
+        "refs_count": user.get("active_refs", 0),
+        "cars": user.get("cars", [])
+    })
 
 async def api_search_clients(request):
     admin_id = int(request.query.get("admin_id", 0))
@@ -429,13 +389,10 @@ async def api_search_clients(request):
         cars = udata.get("cars", [])
         car_str = ", ".join([f"{c.get('brand')} ({c.get('plate')})" for c in cars]) or "Нет машин"
         
-        if (query in phone.lower() or 
-            query in uid.lower() or 
+        if (query in phone.lower() or query in uid.lower() or 
             any(query in c.get('plate', '').lower() or query in c.get('vin', '').lower() for c in cars)):
-            
             results.append({
-                "user_id": uid,
-                "phone": phone,
+                "user_id": uid, "phone": phone,
                 "bonus_balance": udata.get("bonus_balance", 0),
                 "turnover": udata.get("turnover", 0),
                 "car_info": car_str
@@ -446,8 +403,7 @@ async def api_search_clients(request):
 async def api_add_transaction(request):
     try:
         data = await request.json()
-        admin_id = int(data.get("admin_id", 0))
-        if admin_id not in ADMIN_IDS:
+        if int(data.get("admin_id", 0)) not in ADMIN_IDS:
             return web.json_response({"success": False, "error": "Unauthorized"}, status=403)
             
         client_id = str(data.get("user_id"))
@@ -460,7 +416,6 @@ async def api_add_transaction(request):
             
         client = db[client_id]
         
-        # 1. Реферальный бонус за первый визит (10%, макс 5000)
         if is_first_visit and not client.get("first_visit_done", False):
             client["first_visit_done"] = True
             referrer_id = client.get("invited_by")
@@ -469,90 +424,52 @@ async def api_add_transaction(request):
                 db[referrer_id]["bonus_balance"] = db[referrer_id].get("bonus_balance", 0) + ref_bonus
                 db[referrer_id]["active_refs"] = db[referrer_id].get("active_refs", 0) + 1
                 try:
-                    await bot.send_message(
-                        int(referrer_id), 
-                        f"🎉 Ваш приглашенный друг совершил первый визит!\n🎁 Вам начислен бонус: *{ref_bonus:,.0f} баллов*.", 
-                        parse_mode="Markdown"
-                    )
-                except Exception as e:
-                    logging.error(f"Не удалось уведомить реферера: {e}")
+                    await bot.send_message(int(referrer_id), f"🎉 Друг совершил первый визит! Начислен бонус: *{ref_bonus:,.0f} баллов*.", parse_mode="Markdown")
+                except: pass
 
-        # 2. Личный кэшбэк
         client["turnover"] = client.get("turnover", 0.0) + amount
         personal_rate, _, _ = get_personal_cashback_rate(client["turnover"])
         client_cashback = amount * (personal_rate / 100.0)
         client["bonus_balance"] = client.get("bonus_balance", 0.0) + client_cashback
 
-        # 3. Пассивный кэшбэк рефереру с обычных визитов
-        referrer_id = client.get("invited_by")
-        if referrer_id and referrer_id in db and not is_first_visit:
-            ref_owner = db[referrer_id]
-            passive_rate = get_referral_passive_rate(ref_owner.get("active_refs", 0))
-            if passive_rate > 0:
-                passive_bonus = amount * (passive_rate / 100.0)
-                ref_owner["bonus_balance"] += passive_bonus
-                try:
-                    await bot.send_message(
-                        int(referrer_id), 
-                        f"📈 Вам начислен пассивный кэшбэк с чека друга: *{passive_bonus:,.0f} баллов*.", 
-                        parse_mode="Markdown"
-                    )
-                except Exception as e:
-                    logging.error(f"Не удалось уведомить реферера о пассивном кэшбэке: {e}")
-
         save_db(db)
         
-        # Уведомляем клиента о визите и кэшбэке
         try:
-            await bot.send_message(
-                int(client_id), 
-                f"🎉 Внесен визит на сумму **{amount:,.0f} ₽**!\n💵 Начислен кэшбэк: *{client_cashback:,.0f} баллов*.\n📊 Общий баланс баллов: *{client['bonus_balance']:,.0f}*.", 
-                parse_mode="Markdown"
-            )
-        except Exception as e:
-            logging.error(f"Не удалось уведомить клиента о транзакции: {e}")
+            await bot.send_message(int(client_id), f"🎉 Чек на **{amount:,.0f} ₽** проведен!\n💵 Кэшбэк: *{client_cashback:,.0f} баллов*.", parse_mode="Markdown")
+        except: pass
 
         return web.json_response({"success": True})
     except Exception as e:
-        logging.error(f"Ошибка в api_add_transaction: {e}")
         return web.json_response({"success": False, "error": str(e)}, status=500)
 
 async def api_burn_bonuses(request):
     try:
         data = await request.json()
-        admin_id = int(data.get("admin_id", 0))
-        if admin_id not in ADMIN_IDS:
+        if int(data.get("admin_id", 0)) not in ADMIN_IDS:
             return web.json_response({"success": False, "error": "Unauthorized"}, status=403)
             
         client_id = str(data.get("user_id"))
         amount = float(data.get("amount", 0))
         
         db = load_db()
-        if client_id not in db:
-            return web.json_response({"success": False, "error": "Client not found"})
+        if client_id not in db or db[client_id].get("bonus_balance", 0) < amount:
+            return web.json_response({"success": False, "error": "Недостаточно баллов"})
             
-        client = db[client_id]
-        if client.get("bonus_balance", 0) < amount:
-            return web.json_response({"success": False, "error": "Недостаточно баллов на балансе у клиента"})
-            
-        client["bonus_balance"] -= amount
+        db[client_id]["bonus_balance"] -= amount
         save_db(db)
         
         try:
-            await bot.send_message(
-                int(client_id), 
-                f"➖ С вашего баланса списано: *{amount:,.0f} баллов*.\n📊 Остаток баланса: *{client['bonus_balance']:,.0f} баллов*.", 
-                parse_mode="Markdown"
-            )
-        except Exception as e:
-            logging.error(f"Не удалось уведомить клиента о списании: {e}")
+            await bot.send_message(int(client_id), f"➖ Списано с баланса: *{amount:,.0f} баллов*.", parse_mode="Markdown")
+        except: pass
 
         return web.json_response({"success": True})
     except Exception as e:
-        logging.error(f"Ошибка в api_burn_bonuses: {e}")
         return web.json_response({"success": False, "error": str(e)}, status=500)
 
-async def setup_web_server():
+
+async def main():
+    dp.include_router(router)
+    
     app = web.Application()
     
     @web.middleware
@@ -563,33 +480,33 @@ async def setup_web_server():
                 "Access-Control-Allow-Headers": "Content-Type",
                 "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
             })
-        response = await handler(request)
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        return response
+        resp = await handler(request)
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        return resp
 
     app.middlewares.append(cors_middleware)
     
+    app.router.add_get("/api/user", api_get_user_data)
     app.router.add_get("/api/admin/search", api_search_clients)
     app.router.add_post("/api/admin/add_transaction", api_add_transaction)
     app.router.add_post("/api/admin/burn_bonuses", api_burn_bonuses)
     
+    # Раздача статики (index.html, admin.html)
+    app.router.add_static('/', path='./', name='static')
+
+    port = int(os.environ.get("PORT", 8000))
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8000)
+    site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    logging.info("Веб-сервер API успешно запущен на порту 8000.")
-
-
-async def main():
-    dp.include_router(router)
-    await setup_web_server()
-    logging.info("Telegram-бот запущен и ожидает сообщения...")
+    
+    logging.info(f"Веб-сервер и API запущены на порту {port}.")
+    
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     import asyncio
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logging.info("Бот остановлен пользователем.")
+        logging.info("Бот остановлен.")

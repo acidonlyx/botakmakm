@@ -97,14 +97,12 @@ async def handle_client_photo(message: Message):
     user_id = str(message.from_user.id)
     db = load_db()
     
-    # Достаем данные машины клиента, если они заполнены
     user_data = db.get(user_id, {})
     car = user_data.get("car", {})
     phone = user_data.get("phone", "Не указан")
     
     car_info = f"{car.get('brand', '')} {car.get('model', '')} (Гос. номер: {car.get('plate', 'не указан')}, VIN: {car.get('vin', 'не указан')})"
     
-    # Пересылаем фото всем администраторам
     for admin_id in ADMIN_IDS:
         try:
             caption = (
@@ -150,7 +148,7 @@ async def contact_callback(callback: Message):
     await callback.message.answer("📞 Телефон: +7 (999) 000-00-00\n📍 Адрес: ул. Автомобильная, 1")
     await callback.answer()
 
-# === АДМИНСКАЯ КОМАНДА ФИКСАЦИИ ВИЗИТА ===
+# === АДМИНСКАЯ КОМАНДА ФИКСАЦИИ ВИЗИТА (Текстовая) ===
 @router.message(Command("visit"))
 async def admin_register_visit(message: Message):
     if message.from_user.id not in ADMIN_IDS:
@@ -170,7 +168,6 @@ async def admin_register_visit(message: Message):
     
     client = db[client_id]
     
-    # 1. Если это первый визит — обрабатываем бонус пригласившему
     if is_first_visit and not client.get("first_visit_done", False):
         client["first_visit_done"] = True
         referrer_id = client.get("invited_by")
@@ -188,13 +185,11 @@ async def admin_register_visit(message: Message):
             except:
                 pass
 
-    # 2. Увеличиваем личный оборот клиента и начисляем ЕМУ его личный кэшбэк
     client["turnover"] += amount
     personal_rate, _, _ = get_personal_cashback_rate(client["turnover"])
     client_cashback = amount * (personal_rate / 100.0)
     client["bonus_balance"] += client_cashback
 
-    # 3. Начисляем РЕФЕРАЛЬНЫЙ кэшбэк тому, кто пригласил этого клиента (если есть пригласивший)
     referrer_id = client.get("invited_by")
     if referrer_id and referrer_id in db:
         ref_owner = db[referrer_id]
@@ -235,7 +230,20 @@ async def admin_burn_bonuses(message: Message):
     save_db(db)
     await message.answer(f"✅ Успешно списано {burn_amount} бонусов у {client_id}.")
 
-# === API ДЛЯ MINI APP ===
+# === КОМАНДА ВЫЗОВА АДМИН-ПАНЕЛИ В БОТЕ ===
+@router.message(Command("admin"))
+async def admin_panel_command(message: Message):
+    if message.from_user.id in ADMIN_IDS:
+        markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🛠 Открыть панель управления", web_app=WebAppInfo(url="https://botakmakm.onrender.com/admin.html"))]
+        ])
+        await message.answer("🔐 Защищенная панель администратора АКМ Авто:", reply_markup=markup)
+    else:
+        # Для остальных пользователей скрываем факт наличия команды
+        pass
+
+
+# === API ДЛЯ MINI APP (КЛИЕНТ) ===
 async def handle_api_user_data(request):
     user_id = request.rel_url.query.get('user_id')
     db = load_db()
@@ -281,11 +289,123 @@ async def handle_save_car(request):
         return web.json_response({"success": True})
     return web.json_response({"success": False})
 
+
+# === API ДЛЯ АДМИН-ПАНЕЛИ (СЕРВЕРНАЯ ЧАСТЬ) ===
+async def handle_admin_search(request):
+    admin_id = request.rel_url.query.get('admin_id')
+    if not admin_id or int(admin_id) not in ADMIN_IDS:
+        return web.json_response({'error': 'Access denied'}, status=403)
+    
+    query = request.rel_url.query.get('query', '').strip().lower()
+    db = load_db()
+    result_users = []
+
+    for uid, udata in db.items():
+        phone = str(udata.get('phone', '')).lower()
+        car = udata.get('car', {})
+        brand = str(car.get('brand', '')).lower()
+        model = str(car.get('model', '')).lower()
+        vin = str(car.get('vin', '')).lower()
+        plate = str(car.get('plate', '')).lower()
+
+        if (query in phone) or (query in vin) or (query in plate) or (query in brand) or (query in model) or (query in uid):
+            car_str = f"{car.get('brand', '')} {car.get('model', '')} ({car.get('plate', 'б/н')})"
+            result_users.append({
+                "user_id": uid,
+                "name": f"Клиент ({uid[-4:]})",
+                "phone": udata.get('phone', 'Не указан'),
+                "car_info": car_str.strip() if car.get('brand') else 'Авто не указано',
+                "bonus_balance": udata.get('bonus_balance', 0.0),
+                "turnover": udata.get('turnover', 0.0)
+            })
+            if len(result_users) >= 10:
+                break
+
+    return web.json_response({'success': True, 'users': result_users})
+
+async def handle_admin_add_transaction(request):
+    try:
+        data = await request.json()
+        admin_id = data.get('admin_id')
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return web.json_response({'error': 'Access denied'}, status=403)
+
+        user_id = str(data.get('user_id'))
+        amount = float(data.get('amount', 0))
+
+        db = load_db()
+        if user_id not in db:
+            return web.json_response({'success': False, 'error': 'Клиент не найден в базе'})
+
+        client = db[user_id]
+        client["turnover"] += amount
+        
+        # Начисляем личный кэшбэк
+        personal_rate, _, _ = get_personal_cashback_rate(client["turnover"])
+        client_cashback = amount * (personal_rate / 100.0)
+        client["bonus_balance"] += client_cashback
+
+        # Реферальный пассивный кэшбэк наставнику
+        referrer_id = client.get("invited_by")
+        if referrer_id and referrer_id in db:
+            ref_owner = db[referrer_id]
+            passive_rate = get_referral_passive_rate(ref_owner.get("active_refs", 0))
+            if passive_rate > 0:
+                passive_bonus = amount * (passive_rate / 100.0)
+                ref_owner["bonus_balance"] += passive_bonus
+                try:
+                    await bot.send_message(
+                        int(referrer_id),
+                        f"💰 Ваш реферал совершил визит на {amount:,.0f} ₽!\n"
+                        f"📈 Вам начислен пассивный кэшбэк ({passive_rate}%): *{passive_bonus:,.0f} бонусов*.",
+                        parse_mode="Markdown"
+                    )
+                except:
+                    pass
+
+        save_db(db)
+        return web.json_response({'success': True})
+    except Exception as e:
+        return web.json_response({'success': False, 'error': str(e)})
+
+async def handle_admin_burn_bonuses(request):
+    try:
+        data = await request.json()
+        admin_id = data.get('admin_id')
+        if not admin_id or int(admin_id) not in ADMIN_IDS:
+            return web.json_response({'error': 'Access denied'}, status=403)
+
+        user_id = str(data.get('user_id'))
+        burn_amount = float(data.get('amount', 0))
+
+        db = load_db()
+        if user_id not in db:
+            return web.json_response({'success': False, 'error': 'Клиент не найден'})
+
+        if db[user_id]["bonus_balance"] < burn_amount:
+            return web.json_response({'success': False, 'error': 'У клиента недостаточно бонусов'})
+
+        db[user_id]["bonus_balance"] -= burn_amount
+        save_db(db)
+        return web.json_response({'success': True})
+    except Exception as e:
+        return web.json_response({'success': False, 'error': str(e)})
+
+
 async def main():
     dp.include_router(router)
     app = web.Application()
+    
+    # Клиентские API
     app.router.add_get('/api/user_data', handle_api_user_data)
     app.router.add_post('/api/save_car', handle_save_car)
+    
+    # Админские API
+    app.router.add_get('/api/admin/search', handle_admin_search)
+    app.router.add_post('/api/admin/add_transaction', handle_admin_add_transaction)
+    app.router.add_post('/api/admin/burn_bonuses', handle_admin_burn_bonuses)
+    
+    # Статика (раздача файлов index.html, admin.html из папки ./webapp)
     app.router.add_static('/', path='./webapp', name='webapp')
     
     runner = web.AppRunner(app)
